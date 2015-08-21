@@ -361,27 +361,27 @@ class SaleOrderImportMapper(ImportMapper):
     def backend_id(self, record):
         return {'backend_id': self.backend_record.id}
 
-        @mapping
-        def order_line(self, record):
-            line_vals = []
-            if record['order'] and record['order']['line_items']:
-                order_lines = record['order']['line_items']
-                for line in order_lines:
-                    product = False
-                    woo_prod_ids = self.env['woo.product.product'].search(
-                        [('woo_id', '=', line['product_id'])])
-                    if woo_prod_ids:
-                        product = woo_prod_ids[0].openerp_id
-                    else:
-                        raise Warning(_('Please Import Product first than \
-                     try to import sale order.'))
-                    line_vals.append([0, False, {
-                        'product_id': product.id,
-                        'name': product.name,
-                        'product_uom_qty': line['quantity'] or 0.0,
-                        'price_total': line['price'] or 0.0,
-                    }])
-            return {'order_line': line_vals}
+    @mapping
+    def order_line(self, record):
+        line_vals = []
+        if record['order'] and record['order']['line_items']:
+            order_lines = record['order']['line_items']
+            for line in order_lines:
+                product = False
+                woo_prod_ids = self.env['woo.product.product'].search(
+                    [('woo_id', '=', line['product_id'])])
+                if woo_prod_ids:
+                    product = woo_prod_ids[0].openerp_id
+                else:
+                    raise Warning(_('Please Import Product first than \
+                 try to import sale order.'))
+                line_vals.append([0, False, {
+                    'product_id': product.id,
+                    'name': product.name,
+                    'product_uom_qty': line['quantity'] or 0.0,
+                    'price_total': line['price'] or 0.0,
+                }])
+        return {'order_line': line_vals}
 
 
 @job(default_channel='root.woo')
