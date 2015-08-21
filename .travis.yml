@@ -22,6 +22,10 @@ install:
   - git clone https://github.com/OCA/maintainer-quality-tools.git ${HOME}/maintainer-quality-tools
   - export PATH=${HOME}/maintainer-quality-tools/travis:${PATH}
   - travis_install_nightly
+  - git clone https://github.com/OCA/connector.git $HOME/connector -b ${VERSION}
+  - git clone https://github.com/OCA/connector-ecommerce.git -b ${VERSION}
+  - git clone https://github.com/OCA/e-commerce.git $HOME/e-commerce -b ${VERSION}
+  - git clone https://github.com/OCA/sale-workflow $HOME/sale-workflow -b ${VERSION}
   - pip install woocommerce
   - printf '[options]\n\nrunning_env = dev' > ${HOME}/.openerp_serverrc
 
