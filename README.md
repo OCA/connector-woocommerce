@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/techreceptives/connector-woocommerce.svg?branch=8.0)](https://travis-ci.org/techreceptives/connector-woocommerce)
-[![Coverage Status](https://coveralls.io/repos/techreceptives/connector-woocommerce/badge.svg?branch=8.0)](https://coveralls.io/r/techreceptives/connector-woocommerce?branch=8.0)
+[![Coverage Status](https://coveralls.io/repos/techreceptives/connector-woocommerce/badge.svg?branch=8.0&service=github)](https://coveralls.io/github/techreceptives/connector-woocommerce?branch=8.0)
 
 Odoo Connector WooCommerce Modules
 ===================================
