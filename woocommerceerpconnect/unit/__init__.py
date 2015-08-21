@@ -19,7 +19,7 @@
 #
 #
 
-import import_synchronizer
-import backend_adapter
-import mapper
-import binder
+from . import import_synchronizer
+from . import backend_adapter
+from . import mapper
+from . import binder

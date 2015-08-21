@@ -165,7 +165,7 @@ class ProductProductImporter(WooImporter):
         return openerp_binding
 
     def _after_import(self, binding):
-#         """ Hook called at the end of the import """
+        """ Hook called at the end of the import """
         image_importer = self.unit_for(ProductImageImporter)
         image_importer.run(self.woo_id, binding.id)
         return

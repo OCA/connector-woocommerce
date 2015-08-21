@@ -19,7 +19,7 @@
 #
 #
 
-import model
-import backend
-import connector
-import related_action
+from . import model
+from . import backend
+from . import connector
+from . import related_action

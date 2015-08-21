@@ -21,15 +21,9 @@
 
 import logging
 import xmlrpclib
-from collections import namedtuple
-from openerp import models, api, fields
-from openerp import models, fields, api
+from openerp import models, fields, api, _
 from openerp.addons.connector.queue.job import job
-from openerp.addons.connector.connector import ConnectorUnit
-from openerp.addons.connector.exception import MappingError
-from openerp.addons.connector.unit.backend_adapter import BackendAdapter
 from openerp.addons.connector.unit.mapper import (mapping,
-                                                  only_create,
                                                   ImportMapper
                                                   )
 from openerp.addons.connector.exception import IDMissingInBackend
@@ -37,7 +31,6 @@ from ..unit.backend_adapter import (GenericAdapter)
 from ..unit.import_synchronizer import (DelayedBatchImporter, WooImporter)
 from ..connector import get_environment
 from ..backend import woo
-from woocommerce import API
 _logger = logging.getLogger(__name__)
 
 
@@ -318,11 +311,10 @@ class SaleOrderImportMapper(ImportMapper):
         if record['order']:
             rec = record['order']
             binder = self.binder_for('woo.res.partner')
-            resutlt = {}
             if rec['customer_id']:
                 partner_id = binder.to_openerp(rec['customer_id'],
                                                unwrap=True) or False
-                customer_id = str(rec['customer_id'])
+#               customer_id = str(rec['customer_id'])
                 assert partner_id, ("Please Check Customer Role \
                                     in WooCommerce")
                 result = {'partner_id': partner_id}
@@ -357,8 +349,8 @@ class SaleOrderImportMapper(ImportMapper):
                     'backend_id': self.backend_record.id,
                     'openerp_id': partner_id.id,
                 })
-                woo_partner_id = self.env['woo.res.partner'].create(
-                    partner_dict)
+#                 woo_partner_id = self.env['woo.res.partner'].create(
+#                     partner_dict)
                 result = {'partner_id': partner_id.id}
                 onchange_val = self.env['sale.order'].onchange_partner_id(
                     partner_id.id)
@@ -369,27 +361,27 @@ class SaleOrderImportMapper(ImportMapper):
     def backend_id(self, record):
         return {'backend_id': self.backend_record.id}
 
-        @mapping
-        def order_line(self, record):
-            line_vals = []
-            if record['order'] and record['order']['line_items']:
-                order_lines = record['order']['line_items']
-                for line in order_lines:
-                    product = False
-                    woo_prod_ids = self.env['woo.product.product'].search(
-                        [('woo_id', '=', line['product_id'])])
-                    if woo_prod_ids:
-                        product = woo_prod_ids[0].openerp_id
-                    else:
-                        raise Warning(_('Please Import Product first than \
-                     try to import sale order.'))
-                    line_vals.append([0, False, {
-                        'product_id': product.id,
-                        'name': product.name,
-                        'product_uom_qty': line['quantity'] or 0.0,
-                        'price_total': line['price'] or 0.0,
-                    }])
-            return {'order_line': line_vals}
+    @mapping
+    def order_line(self, record):
+        line_vals = []
+        if record['order'] and record['order']['line_items']:
+            order_lines = record['order']['line_items']
+            for line in order_lines:
+                product = False
+                woo_prod_ids = self.env['woo.product.product'].search(
+                    [('woo_id', '=', line['product_id'])])
+                if woo_prod_ids:
+                    product = woo_prod_ids[0].openerp_id
+                else:
+                    raise Warning(_('Please Import Product first than \
+                 try to import sale order.'))
+                line_vals.append([0, False, {
+                    'product_id': product.id,
+                    'name': product.name,
+                    'product_uom_qty': line['quantity'] or 0.0,
+                    'price_total': line['price'] or 0.0,
+                }])
+        return {'order_line': line_vals}
 
 
 @job(default_channel='root.woo')
