@@ -19,8 +19,8 @@
 #
 #
 
-import backend
-import product_category
-import product
-import customer
-import sale
+from . import backend
+from . import product_category
+from . import product
+from . import customer
+from . import sale
