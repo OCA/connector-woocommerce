@@ -21,7 +21,7 @@
 
 import logging
 import xmlrpclib
-from openerp import models, fields, api, _
+from openerp import models, fields, api
 from openerp.addons.connector.queue.job import job
 from openerp.addons.connector.unit.mapper import (mapping,
                                                   ImportMapper
@@ -107,7 +107,6 @@ class WooSaleOrderLine(models.Model):
         binding = self.env['woo.sale.order'].browse(woo_order_id)
         vals['order_id'] = binding.openerp_id.id
         binding = super(WooSaleOrderLine, self).create(vals)
-        line = binding.openerp_id
         return binding
 
 
@@ -353,23 +352,6 @@ class SaleOrderImportMapper(ImportMapper):
     @mapping
     def backend_id(self, record):
         return {'backend_id': self.backend_record.id}
-
-#     @mapping
-#     def order_line(self, record):
-#         line_vals = []
-#         if record['order'] and record['order']['line_items']:
-#             order_lines = record['order']['line_items']
-#             for line in order_lines:
-#                 product = False
-#                 woo_prod_ids = self.env['woo.product.product'].search(
-#                     [('woo_id', '=', line['product_id'])])
-#                 if woo_prod_ids:
-#                     product = woo_prod_ids[0].openerp_id
-#                 else:
-#                     raise Warning(_('Please Import Product first than \
-#                  try to import sale order.'))
-# 
-#         return {'order_line': line_vals}
 
 
 @job(default_channel='root.woo')
