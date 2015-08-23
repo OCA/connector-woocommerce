@@ -24,7 +24,7 @@
     'version': '1.0',
     'category': 'customized',
     'description': """WooCommerce Connector.""",
-    'author': 'Tech-Receptives',
+    'author': 'Tech Receptives',
     'maintainer': 'OpenERP SA',
     'website': 'http://www.openerp.com',
     'depends': ['base', 'connector', 'connector_ecommerce'],
