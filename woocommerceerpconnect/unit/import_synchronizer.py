@@ -210,7 +210,6 @@ class WooImporter(Importer):
         else:
             record = self._create_data(map_record)
             binding = self._create(record)
-
         self.binder.bind(self.woo_id, binding)
 
         self._after_import(binding)
