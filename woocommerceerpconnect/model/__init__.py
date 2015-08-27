@@ -24,4 +24,3 @@ from . import product_category
 from . import product
 from . import customer
 from . import sale
-from . import product_attribute

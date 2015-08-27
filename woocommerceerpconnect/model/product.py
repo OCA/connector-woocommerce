@@ -159,7 +159,7 @@ class ProductProductImporter(WooImporter):
     def _import_dependencies(self):
         """ Import the dependencies for the record"""
         record = self.woo_record
-        record=record['product']
+        record = record['product']
         for woo_category_id in record['categories']:
             self._import_dependency(woo_category_id,
                                     'woo.product.category')

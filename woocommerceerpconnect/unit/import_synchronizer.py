@@ -201,7 +201,7 @@ class WooImporter(Importer):
 
         # import the missing linked resources
         self._import_dependencies()
-        
+
         map_record = self._map_data()
 
         if binding:
