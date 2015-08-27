@@ -284,8 +284,6 @@ class ProductProductImportMapper(ImportMapper):
             category_ids = []
             main_categ_id = None
             for woo_category_id in woo_categories:
-#                 woo_category_id = self.env['woo.product.category'].search(
-#                     [('id', '=', woo_category_id)])
                 cat_id = binder.to_openerp(woo_category_id, unwrap=True)
                 if cat_id is None:
                     raise MappingError("The product category with "
