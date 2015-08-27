@@ -227,9 +227,25 @@ SaleOrderBatchImporter = SaleOrderBatchImporter
 @woo
 class SaleOrderImporter(WooImporter):
     _model_name = ['woo.sale.order']
+    
+    def _import_addresses(self):
+        record = self.woo_record
+        record=record['order']
+        self._import_dependency(record['customer_id'],
+                                    'woo.res.partner')
+
 
     def _import_dependencies(self):
         """ Import the dependencies for the record"""
+        record = self.woo_record
+
+        self._import_addresses()
+        record=record['items']
+        for line in record:
+            _logger.debug('line: %s', line)
+            if 'product_id' in line:
+                self._import_dependency(line['product_id'],
+                                        'woo.product.product')
 
     def _clean_woo_items(self, resource):
         """

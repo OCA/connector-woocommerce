@@ -77,7 +77,7 @@ class ProductProduct(models.Model):
 @woo
 class ProductProductAdapter(GenericAdapter):
     _model_name = 'woo.product.product'
-    _woo_model = 'products'
+    _woo_model = 'products/details'
 
     def _call(self, method, arguments):
         try:
@@ -158,7 +158,11 @@ class ProductProductImporter(WooImporter):
 
     def _import_dependencies(self):
         """ Import the dependencies for the record"""
-        return
+        record = self.woo_record
+        record=record['product']
+        for woo_category_id in record['categories']:
+            self._import_dependency(woo_category_id,
+                                    'woo.product.category')
 
     def _create(self, data):
         openerp_binding = super(ProductProductImporter, self)._create(data)
@@ -277,19 +281,16 @@ class ProductProductImportMapper(ImportMapper):
             rec = record['product']
             woo_categories = rec['categories']
             binder = self.binder_for('woo.product.category')
-
             category_ids = []
             main_categ_id = None
-
             for woo_category_id in woo_categories:
-                woo_category_id = self.env['woo.product.category'].search(
-                    [('name', '=', woo_category_id)])
-                cat_id = binder.to_openerp(woo_category_id.woo_id, unwrap=True)
+#                 woo_category_id = self.env['woo.product.category'].search(
+#                     [('id', '=', woo_category_id)])
+                cat_id = binder.to_openerp(woo_category_id, unwrap=True)
                 if cat_id is None:
                     raise MappingError("The product category with "
                                        "woo id %s is not imported." %
                                        woo_category_id)
-
                 category_ids.append(cat_id)
             if category_ids:
                 main_categ_id = category_ids.pop(0)
@@ -298,7 +299,6 @@ class ProductProductImportMapper(ImportMapper):
                 default_categ = self.backend_record.default_category_id
                 if default_categ:
                     main_categ_id = default_categ.id
-
             result = {'woo_categ_ids': [(6, 0, category_ids)]}
             if main_categ_id:  # OpenERP assign 'All Products' if not specified
                 result['categ_id'] = main_categ_id
