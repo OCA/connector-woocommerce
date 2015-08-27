@@ -294,11 +294,6 @@ class ProductProductImportMapper(ImportMapper):
                 category_ids.append(cat_id)
             if category_ids:
                 main_categ_id = category_ids.pop(0)
-
-            if main_categ_id is None:
-                default_categ = self.backend_record.default_category_id
-                if default_categ:
-                    main_categ_id = default_categ.id
             result = {'woo_categ_ids': [(6, 0, category_ids)]}
             if main_categ_id:  # OpenERP assign 'All Products' if not specified
                 result['categ_id'] = main_categ_id
