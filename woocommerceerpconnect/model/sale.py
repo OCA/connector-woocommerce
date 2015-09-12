@@ -21,16 +21,18 @@
 
 import logging
 import xmlrpclib
+
 from openerp import models, fields, api
+from openerp.addons.connector.exception import IDMissingInBackend
 from openerp.addons.connector.queue.job import job
 from openerp.addons.connector.unit.mapper import (mapping,
                                                   ImportMapper
                                                   )
-from openerp.addons.connector.exception import IDMissingInBackend
+
+from ..backend import woo
+from ..connector import get_environment
 from ..unit.backend_adapter import (GenericAdapter)
 from ..unit.import_synchronizer import (DelayedBatchImporter, WooImporter)
-from ..connector import get_environment
-from ..backend import woo
 _logger = logging.getLogger(__name__)
 
 
@@ -132,18 +134,31 @@ class SaleOrderLineImportMapper(ImportMapper):
 
     @mapping
     def product_id(self, record):
-        binder = self.binder_for('woo.product.product')
-        product_id = binder.to_openerp(record['product_id'], unwrap=True)
+        if 'parent_id' in record and record['parent_id']:
+            binder = self.binder_for('woo.product.combination')
+            product_id = binder.to_openerp(record['product_id'], unwrap=True)
+
+        else:
+            binder = self.binder_for('woo.product.template')
+            product_id = binder.to_openerp(record['product_id'], unwrap=True)
+            product = self.env['product.product'].search(
+                [('product_tmpl_id', '=', product_id)])
+            product_id = product.id
         assert product_id is not None, (
             "product_id %s should have been imported in "
             "SaleOrderImporter._import_dependencies" % record['product_id'])
         return {'product_id': product_id}
 
+    @mapping
+    def qunatity(self, record):
+        if record['quantity']:
+            return {'product_uom_quantity': record['quantity']}
+
 
 @woo
 class SaleOrderAdapter(GenericAdapter):
     _model_name = 'woo.sale.order'
-    _woo_model = 'orders'
+    _woo_model = 'orders/details'
 
     def _call(self, method, arguments):
         try:
@@ -242,9 +257,12 @@ class SaleOrderImporter(WooImporter):
         record = record['items']
         for line in record:
             _logger.debug('line: %s', line)
-            if 'product_id' in line:
+            if 'parent_id' in line and line['parent_id']:
+                self._import_dependency(line['parent_id'],
+                                        'woo.product.template')
+            else:
                 self._import_dependency(line['product_id'],
-                                        'woo.product.product')
+                                        'woo.product.template')
 
     def _clean_woo_items(self, resource):
         """
@@ -312,6 +330,20 @@ class SaleOrderImportMapper(ImportMapper):
                     return {'status_id': status_id.id}
             else:
                 return {'status_id': False}
+
+    @mapping
+    def total(self, record):
+        if record['order']:
+            rec = record['order']
+            if rec['total']:
+                return {'amount_total': rec['total']}
+
+    @mapping
+    def sub_total(self, record):
+        if record['order']:
+            rec = record['order']
+            if rec['subtotal']:
+                return {'amount_untaxed': rec['subtotal']}
 
     @mapping
     def customer_id(self, record):

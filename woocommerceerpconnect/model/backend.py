@@ -28,6 +28,8 @@ from .product_category import category_import_batch
 from .product import product_import_batch
 from .customer import customer_import_batch
 from .sale import sale_order_import_batch
+from .payment import payment_method_import_batch
+from .delivery import delivery_method_import_batch
 
 
 class wc_backend(models.Model):
@@ -132,7 +134,7 @@ class wc_backend(models.Model):
         backend_id = self.id
         from_date = None
         product_import_batch.delay(
-            session, 'woo.product.product', backend_id,
+            session, 'woo.product.template', backend_id,
             {'from_date': from_date,
              'to_date': import_start_time}, priority=2)
         return True
@@ -164,6 +166,32 @@ class wc_backend(models.Model):
         return True
 
     @api.multi
+    def import_payment_method(self):
+        session = ConnectorSession(self.env.cr, self.env.uid,
+                                   context=self.env.context)
+        import_start_time = datetime.now()
+        backend_id = self.id
+        from_date = None
+        payment_method_import_batch.delay(
+            session, 'woo.payment.method', backend_id,
+            {'from_date': from_date,
+             'to_date': import_start_time}, priority=4)
+        return True
+
+    @api.multi
+    def import_delivery_method(self):
+        session = ConnectorSession(self.env.cr, self.env.uid,
+                                   context=self.env.context)
+        import_start_time = datetime.now()
+        backend_id = self.id
+        from_date = None
+        delivery_method_import_batch.delay(
+            session, 'woo.delivery.carrier', backend_id,
+            {'from_date': from_date,
+             'to_date': import_start_time}, priority=4)
+        return True
+
+    @api.multi
     def import_categories(self):
         """ Import Product categories """
         for backend in self:
@@ -189,4 +217,18 @@ class wc_backend(models.Model):
         """ Import Orders from all websites """
         for backend in self:
             backend.import_order()
+        return True
+
+    @api.multi
+    def import_payment_methods(self):
+        """ Import Payment Methods from all websites """
+        for backend in self:
+            backend.import_payment_method()
+        return True
+
+    @api.multi
+    def import_delivery_methods(self):
+        """ Import Payment Methods from all websites """
+        for backend in self:
+            backend.import_delivery_method()
         return True

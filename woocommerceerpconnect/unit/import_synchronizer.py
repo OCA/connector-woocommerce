@@ -201,9 +201,7 @@ class WooImporter(Importer):
 
         # import the missing linked resources
         self._import_dependencies()
-
         map_record = self._map_data()
-
         if binding:
             record = self._update_data(map_record)
             self._update(binding, record)
@@ -215,12 +213,12 @@ class WooImporter(Importer):
         self._after_import(binding)
 
 
-WooImportSynchronizer = WooImporter
+Woo = WooImporter
 
 
 class BatchImporter(Importer):
 
-    """ The role of a BatchImporter is to search for a list of
+    """ The role of a Batch is to search for a list of
     items to import, then it can either import them directly or delay
     the import of each item separately.
     """
@@ -239,7 +237,7 @@ class BatchImporter(Importer):
         raise NotImplementedError
 
 
-BatchImportSynchronizer = BatchImporter
+Batch = BatchImporter
 
 
 class DirectBatchImporter(BatchImporter):

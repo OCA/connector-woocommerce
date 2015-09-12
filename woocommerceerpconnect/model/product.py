@@ -40,14 +40,14 @@ from ..backend import woo
 _logger = logging.getLogger(__name__)
 
 
-class WooProductProduct(models.Model):
-    _name = 'woo.product.product'
+class WooProductTemplate(models.Model):
+    _name = 'woo.product.template'
     _inherit = 'woo.binding'
-    _inherits = {'product.product': 'openerp_id'}
-    _description = 'woo product product'
+    _inherits = {'product.template': 'openerp_id'}
+    _description = 'woo product template'
 
     _rec_name = 'name'
-    openerp_id = fields.Many2one(comodel_name='product.product',
+    openerp_id = fields.Many2one(comodel_name='product.template',
                                  string='product',
                                  required=True,
                                  ondelete='cascade')
@@ -58,30 +58,25 @@ class WooProductProduct(models.Model):
         readonly=False,
         required=True,
     )
-
+    combinations_ids = fields.One2many(
+        'woo.product.combination',
+        'main_template_id',
+        string='Combinations'
+    )
     slug = fields.Char('Slung Name')
     credated_at = fields.Date('created_at')
     weight = fields.Float('weight')
 
 
-class ProductProduct(models.Model):
-    _inherit = 'product.product'
-
-    woo_categ_ids = fields.Many2many(
-        comodel_name='product.category',
-        string='Woo product category',
-    )
-    in_stock = fields.Boolean('In Stock')
-
 
 @woo
-class ProductProductAdapter(GenericAdapter):
-    _model_name = 'woo.product.product'
+class ProductTemplateAdapter(GenericAdapter):
+    _model_name = 'woo.product.template'
     _woo_model = 'products/details'
 
     def _call(self, method, arguments):
         try:
-            return super(ProductProductAdapter, self)._call(method, arguments)
+            return super(ProductTemplateAdapter, self)._call(method, arguments)
         except xmlrpclib.Fault as err:
             # this is the error in the WooCommerce API
             # when the customer does not exist
@@ -126,7 +121,7 @@ class ProductBatchImporter(DelayedBatchImporter):
 
     For every partner in the list, a delayed job is created.
     """
-    _model_name = ['woo.product.product']
+    _model_name = ['woo.product.template']
 
     def _import_record(self, woo_id, priority=None):
         """ Delay a job for the import """
@@ -135,7 +130,6 @@ class ProductBatchImporter(DelayedBatchImporter):
 
     def run(self, filters=None):
         """ Run the synchronization """
-#
         from_date = filters.pop('from_date', None)
         to_date = filters.pop('to_date', None)
         record_ids = self.backend_adapter.search(
@@ -152,9 +146,18 @@ class ProductBatchImporter(DelayedBatchImporter):
 ProductBatchImporter = ProductBatchImporter
 
 
+@job
+def import_record(session, model_name, backend_id, woo_id):
+    """ Import a record from woocommerce """
+    env = get_environment(session, model_name, backend_id)
+    importer = env.get_connector_unit(WooImporter)
+    importer.run(woo_id)
+
+
 @woo
-class ProductProductImporter(WooImporter):
-    _model_name = ['woo.product.product']
+class ProductTemplateImporter(WooImporter):
+    _model_name = ['woo.product.template']
+
 
     def _import_dependencies(self):
         """ Import the dependencies for the record"""
@@ -164,17 +167,82 @@ class ProductProductImporter(WooImporter):
             self._import_dependency(woo_category_id,
                                     'woo.product.category')
 
+    def _clean_woo_items(self, resource):
+        """
+        Method that clean the sale order line given by WooCommerce before
+        importing it
+
+        This method has to stay here because it allow to customize the
+        behavior of the sale order.
+
+        """
+        top_items = []
+
+        # Group the childs with their parent
+        for item in resource['product']['attributes']:
+            top_items.append(item)
+        all_items = []
+        for top_item in top_items:
+            all_items.append(top_item)
+        resource['attributes'] = all_items
+        return resource
+
     def _create(self, data):
-        openerp_binding = super(ProductProductImporter, self)._create(data)
+        openerp_binding = super(ProductTemplateImporter, self)._create(data)
         return openerp_binding
 
     def _after_import(self, binding):
         """ Hook called at the end of the import """
         image_importer = self.unit_for(ProductImageImporter)
         image_importer.run(self.woo_id, binding.id)
+        record = self.woo_record
+        variations = record['product']['variations']
+        for variation in variations:
+            self._import_dependency(variation['id'],
+                                    'woo.product.combination')
+        self.attribute_line(self.woo_id)
         return
 
-ProductProductImport = ProductProductImporter
+    def attribute_line(self, woo_id):
+        template = self.env['woo.product.template'].search(
+            [('woo_id', '=', woo_id)])
+        template_id = template.openerp_id.id
+        product_ids = self.session.search('product.product', [
+            ('product_tmpl_id', '=', template_id)]
+        )
+        if product_ids:
+            products = self.session.browse('product.product',
+                                           product_ids)
+            attribute_ids = []
+            for product in products:
+                for attribute_value in product.attribute_value_ids:
+                    attribute_ids.append(attribute_value.attribute_id.id)
+                    # filter unique id for create relation
+            if attribute_ids:
+                for attribute_id in set(attribute_ids):
+                    value_ids = []
+                    for product in products:
+                        for attribute_value in product.attribute_value_ids:
+                            if attribute_value.attribute_id.id == attribute_id:
+                                value_ids.append(attribute_value.id)
+                    line_id = self.env['product.attribute.line'].search(
+                        [('attribute_id', '=', attribute_id),
+                         ('product_tmpl_id', '=', template_id)])
+                    if line_id:
+                        self.env['product.attribute.line'].write({
+                            'attribute_id': attribute_id,
+                            'product_tmpl_id': template_id,
+                            'value_ids': [(6, 0, set(value_ids))]}
+                        )
+                    else:
+                        self.session.create('product.attribute.line', {
+                                            'attribute_id': attribute_id,
+                                            'product_tmpl_id': template_id,
+                                            'value_ids': [(6, 0,
+                                                           set(value_ids))]}
+                                            )
+
+ProductTemplateImport = ProductTemplateImporter
 
 
 @woo
@@ -185,7 +253,7 @@ class ProductImageImporter(Importer):
     Usually called from importers, in ``_after_import``.
     For instance from the products importer.
     """
-    _model_name = ['woo.product.product',
+    _model_name = ['woo.product.template',
                    ]
 
     def _get_images(self, storeview_id=None):
@@ -213,7 +281,7 @@ class ProductImageImporter(Importer):
             binary = urllib2.urlopen(request)
         except urllib2.HTTPError as err:
             if err.code == 404:
-                # the image is just missing, we skip it
+            # the image is just missing, we skip it
                 return
             else:
                 # we don't know why we couldn't download the image
@@ -239,22 +307,22 @@ class ProductImageImporter(Importer):
 
 
 @woo
-class ProductProductImportMapper(ImportMapper):
-    _model_name = 'woo.product.product'
+class ProductTemplateImportMapper(ImportMapper):
+    _model_name = 'woo.product.template'
 
     direct = [
         ('description', 'description'),
         ('weight', 'weight'),
     ]
 
-    @mapping
-    def is_active(self, record):
-        """Check if the product is active in Woo
-        and set active flag in OpenERP
-        status == 1 in Woo means active"""
-        if record['product']:
-            rec = record['product']
-            return {'active': rec['visible']}
+#     @mapping
+#     def is_active(self, record):
+#         """Check if the product is active in Woo
+#         and set active flag in OpenERP
+#         status == 1 in Woo means active"""
+#         if record['product']:
+#             rec = record['product']
+#             return {'active': rec['visible']}
 
     @mapping
     def in_stock(self, record):
@@ -272,7 +340,7 @@ class ProductProductImportMapper(ImportMapper):
     def type(self, record):
         if record['product']:
             rec = record['product']
-            if rec['type'] == 'simple':
+            if rec['type'] == 'simple' or 'variable':
                 return {'type': 'product'}
 
     @mapping

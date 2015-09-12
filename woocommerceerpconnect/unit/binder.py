@@ -36,7 +36,7 @@ class WooModelBinder(WooBinder):
     Bindings are done directly on the binding model.woo.product.category
 
     Binding models are models called ``woo.{normal_model}``,
-    like ``woo.res.partner`` or ``woo.product.product``.
+    like ``woo.res.partner`` or ``woo.product.template``.
     They are ``_inherits`` of the normal models and contains
     the Woo ID, the ID of the Woo Backend and the additional
     fields belonging to the Woo instance.
@@ -44,9 +44,14 @@ class WooModelBinder(WooBinder):
     _model_name = [
         'woo.res.partner',
         'woo.product.category',
-        'woo.product.product',
+        'woo.product.template',
         'woo.sale.order',
         'woo.sale.order.line',
+        'woo.payment.method',
+        'woo.delivery.carrier',
+        'woo.product.combination',
+        'woo.product.combination.option',
+        'woo.product.combination.option.value'
     ]
 
     def to_openerp(self, external_id, unwrap=False, browse=False):
@@ -130,7 +135,7 @@ class WooModelBinder(WooBinder):
     def unwrap_binding(self, binding_id, browse=False):
         """ For a binding record, gives the normal record.
 
-        Example: when called with a ``woo.product.product`` id,
+        Example: when called with a ``woo.product.template`` id,
         it will return the corresponding ``product.product`` id.
 
         :param browse: when True, returns a browse_record instance
@@ -149,7 +154,7 @@ class WooModelBinder(WooBinder):
     def unwrap_model(self):
         """ For a binding model, gives the name of the normal model.
 
-        Example: when called on a binder for ``woo.product.product``,
+        Example: when called on a binder for ``woo.product.template``,
         it will return ``product.product``.
 
         This binder assumes that the normal model lays in ``openerp_id`` since

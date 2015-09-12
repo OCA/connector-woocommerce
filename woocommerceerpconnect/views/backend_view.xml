@@ -43,8 +43,6 @@
 							<button name="import_categories" type="object" class="oe_highlight"
 								string="Import in background" />
 						</group>
-						
-						
 						<group>
 							<label string="Import Product" class="oe_inline" />
 							<button name="import_products" type="object" class="oe_highlight"
@@ -60,6 +58,17 @@
                             <button name="import_orders" type="object" class="oe_highlight"
                                 string="Import in background" />
                         </group>
+                        <group>
+                            <label string="Import Payment Methods" class="oe_inline" />
+                            <button name="import_payment_methods" type="object" class="oe_highlight"
+                                string="Import in background" />
+                        </group>
+                         <group>
+                            <label string="Import Shipping Methods" class="oe_inline" />
+                            <button name="import_delivery_methods" type="object" class="oe_highlight"
+                                string="Import in background" />
+                        </group>
+                        
 					</sheet>
 				</form>
 			</field>

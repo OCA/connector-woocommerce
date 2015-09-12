@@ -188,7 +188,7 @@ class GenericAdapter(WooCRUDAdapter):
         :rtype: list
         """
         return self._call('%s.search' % self._woo_model,
-                          [filters] if filters else [{}])
+                         [filters] if filters else [{}])
 
     def read(self, id, attributes=None):
         """ Returns the information of a record

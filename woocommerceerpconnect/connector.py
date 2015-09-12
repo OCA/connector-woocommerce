@@ -45,7 +45,7 @@ class WooBinding(models.AbstractModel):
     """ Abstract Model for the Bindigs.
 
     All the models used as bindings between WooCommerce and OpenERP
-    (``woo.res.partner``, ``woo.product.product``, ...) should
+    (``woo.res.partner``, ``woo.product.template``, ...) should
     ``_inherit`` it.
     """
     _name = 'woo.binding'
