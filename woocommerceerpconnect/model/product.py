@@ -253,7 +253,7 @@ class ProductImageImporter(Importer):
     Usually called from importers, in ``_after_import``.
     For instance from the products importer.
     """
-    _model_name = ['woo.product.template',
+    _model_name = ['woo.product.template'
                    ]
 
     def _get_images(self, storeview_id=None):
