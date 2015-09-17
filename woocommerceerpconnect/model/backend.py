@@ -30,18 +30,26 @@ from .customer import customer_import_batch
 from .sale import sale_order_import_batch
 from .payment import payment_method_import_batch
 from .delivery import delivery_method_import_batch
+from .order_status import order_state_import_batch
 
 
 class wc_backend(models.Model):
     _name = 'wc.backend'
     _inherit = 'connector.backend'
     _description = 'WooCommerce Backend Configuration'
+
+    @api.model
+    def _get_stock_field_id(self):
+        field = self.env['ir.model.fields'].search(
+            [('model', '=', 'product.product'),
+             ('name', '=', 'virtual_available')], limit=1)
+        return field
     name = fields.Char(string='name')
     _backend_type = 'woo'
     location = fields.Char("Url")
     consumer_key = fields.Char("Consumer key")
     consumer_secret = fields.Char("Consumer Secret")
-    version = fields.Selection([('v2', 'V2')], 'Version')
+    version = fields.Selection([('v2', 'v2')], 'Version')
     verify_ssl = fields.Boolean("Verify SSL")
     default_lang_id = fields.Many2one(
         comodel_name='res.lang',
@@ -50,6 +58,15 @@ class wc_backend(models.Model):
              "will be imported in the translation of this language.\n"
              "Note that a similar configuration exists "
              "for each storeview.",
+    )
+    product_stock_field_id = fields.Many2one(
+        comodel_name='ir.model.fields', string='Stock Field',
+        default=_get_stock_field_id,
+        domain="[('model', 'in', ['product.product', 'product.template']),"
+               " ('ttype', '=', 'float')]",
+        help="Choose the field of the product which will be used for "
+             "stock inventory updates.\nIf empty, Quantity Available "
+             "is used.",
     )
 
     @api.multi
@@ -192,6 +209,19 @@ class wc_backend(models.Model):
         return True
 
     @api.multi
+    def import_order_state(self):
+        session = ConnectorSession(self.env.cr, self.env.uid,
+                                   context=self.env.context)
+        import_start_time = datetime.now()
+        backend_id = self.id
+        from_date = None
+        order_state_import_batch.delay(
+            session, 'woo.sale.order.state', backend_id,
+            {'from_date': from_date,
+             'to_date': import_start_time}, priority=4)
+        return True
+
+    @api.multi
     def import_categories(self):
         """ Import Product categories """
         for backend in self:
@@ -231,4 +261,29 @@ class wc_backend(models.Model):
         """ Import Payment Methods from all websites """
         for backend in self:
             backend.import_delivery_method()
+        return True
+
+    @api.multi
+    def import_order_states(self):
+        """ Import Payment Methods from all websites """
+        for backend in self:
+            backend.import_order_state()
+        return True
+
+    @api.multi
+    def _domain_for_update_product_stock_qty(self):
+        return [
+            ('backend_id', 'in', self.ids),
+            ('type', '!=', 'service'),
+        ]
+
+    @api.multi
+    def update_product_stock_qty(self):
+        woo_product_obj = self.env['woo.product.combination']
+        woo_product_template_obj = self.env['woo.product.template']
+        domain = self._domain_for_update_product_stock_qty()
+        woo_products = woo_product_obj.search(domain)
+        woo_products.recompute_woo_qty()
+        woo_product_template = woo_product_template_obj.search(domain)
+        woo_product_template.recompute_woo_qty()
         return True

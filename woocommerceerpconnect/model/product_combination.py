@@ -32,144 +32,187 @@ the main product.
 '''
 import logging
 import xmlrpclib
+from collections import defaultdict
+from ..connector import get_environment
 _logger = logging.getLogger(__name__)
-from openerp.osv import fields, orm
+from openerp import models, api, fields
 from ..backend import woo
+from openerp.addons.connector.queue.job import job, related_action
 from openerp.addons.connector.exception import IDMissingInBackend
+from openerp.addons.connector.unit.synchronizer import (Exporter)
+from openerp.addons.connector.event import on_record_write
+from ..related_action import unwrap_binding
 from openerp import SUPERUSER_ID
 from openerp.addons.connector.unit.backend_adapter import BackendAdapter
 from openerp.osv.orm import browse_record_list
-# from .product import ProductInventoryExport
 from ..unit.backend_adapter import (GenericAdapter)
-# from .unit.import_synchronizer import WooImporter
 from ..unit.import_synchronizer import (DelayedBatchImporter, WooImporter)
-# from .unit.import_synchronizer import TranslatableRecordImport
 from openerp.addons.connector.unit.mapper import (mapping,
                                                   ImportMapper
                                                   )
 
 
-class product_product(orm.Model):
+class product_product(models.Model):
     _inherit = 'product.product'
 
-    _columns = {
-        'woo_combinations_bind_ids': fields.one2many(
-            'woo.product.combination',
-            'openerp_id',
-            string='WooCommerce Bindings (combinations)'
-        ),
-    }
+    woo_combinations_bind_ids = fields.One2many(
+        'woo.product.combination',
+        'openerp_id',
+        string='WooCommerce Bindings (combinations)'
+    )
 
 
-class woo_product_combination(orm.Model):
+def chunks(items, length):
+    for index in xrange(0, len(items), length):
+        yield items[index:index + length]
+
+
+class woo_product_combination(models.Model):
     _name = 'woo.product.combination'
     _inherit = 'woo.binding'
     _inherits = {'product.product': 'openerp_id'}
 
-    _columns = {
-        'openerp_id': fields.many2one(
-            'product.product',
-            string='Product',
-            required=True,
-            ondelete='cascade'
-        ),
-        'main_template_id': fields.many2one(
-            'woo.product.template',
-            string='Main Template',
-            required=True,
-            ondelete='cascade'
-        ),
-        'quantity': fields.float(
-            'Computed Quantity',
-            help="Last computed quantity to send on WooCommerce."
-        ),
-        'reference': fields.char('Original reference'),
-        'default_on': fields.boolean('Available For Order'),
-    }
+    openerp_id = fields.Many2one(
+        'product.product',
+        string='Product',
+        required=True,
+        ondelete='cascade'
+    )
+    main_template_id = fields.Many2one(
+        'woo.product.template',
+        string='Main Template',
+        required=True,
+        ondelete='cascade'
+    )
+    quantity = fields.Float(
+        'Computed Quantity',
+        help="Last computed quantity to send on WooCommerce."
+    )
+    reference = fields.Char('Original reference')
+    default_on = fields.Boolean('Available For Order')
+    woo_qty = fields.Float(string='Computed Quantity',
+                           help="Last computed quantity to send \
+                           on WooCommerce.")
+    no_stock_sync = fields.Boolean(
+        string='No Stock Synchronization',
+        required=False,
+        help="Check this to exclude the product "
+             "from stock synchronizations.",
+    )
 
-    def recompute_woo_qty(self, cr, uid, ids, context=None):
-        if not hasattr(ids, '__iter__'):
-            ids = [ids]
+    RECOMPUTE_QTY_STEP = 1000  # products at a time
 
-        for product in self.browse(cr, uid, ids, context=context):
-            new_qty = self._woo_qty(cr, uid, product, context=context)
-            self.write(
-                cr, uid, product.id, {'quantity': new_qty}, context=context
-            )
+    @api.multi
+    def recompute_woo_qty(self):
+        """ Check if the quantity in the stock location configured
+        on the backend has changed since the last export.
+
+        If it has changed, write the updated quantity on `woo_qty`.
+        The write on `woo_qty` will trigger an `on_record_write`
+        event that will create an export job.
+
+        It groups the products by backend to avoid to read the backend
+        informations for each product.
+        """
+        # group products by backend
+        backends = defaultdict(self.browse)
+        for product in self:
+            backends[product.backend_id] |= product
+
+        for backend, products in backends.iteritems():
+            self._recompute_woo_qty_backend(backend, products)
         return True
 
-    def _woo_qty(self, cr, uid, product, context=None):
-        return product.qty_available
+    @api.multi
+    def _recompute_woo_qty_backend(self, backend, products,
+                                   read_fields=None):
+        """ Recompute the products quantity for one backend.
+
+        If field names are passed in ``read_fields`` (as a list), they
+        will be read in the product that is used in
+        :meth:`~._woo_qty`.
+
+        """
+
+        if backend.product_stock_field_id:
+            stock_field = backend.product_stock_field_id.name
+        else:
+            stock_field = 'virtual_available'
+        product_fields = ['woo_qty', stock_field]
+        if read_fields:
+            product_fields += read_fields
+        for chunk_ids in chunks(products.ids, self.RECOMPUTE_QTY_STEP):
+            records = self.env['woo.product.combination'].browse(chunk_ids)
+            for product in records.read(fields=product_fields):
+                new_qty = self._woo_qty(product, backend, stock_field)
+                if new_qty != product['woo_qty']:
+                    self.browse(product['id']).woo_qty = new_qty
+
+    @api.multi
+    def _woo_qty(self, product, backend, stock_field):
+        """ Return the current quantity for one product."""
+        return product[stock_field]
 
 
-class product_attribute(orm.Model):
+class product_attribute(models.Model):
     _inherit = 'product.attribute'
 
-    _columns = {
-        'woo_bind_ids': fields.one2many(
-            'woo.product.combination.option',
-            'openerp_id',
-            string='WooCommerce Bindings (combinations)'
-        ),
-    }
+    woo_bind_ids = fields.One2many(
+        'woo.product.combination.option',
+        'openerp_id',
+        string='WooCommerce Bindings (combinations)'
+    )
 
 
-class woo_product_combination_option(orm.Model):
+class woo_product_combination_option(models.Model):
     _name = 'woo.product.combination.option'
     _inherit = 'woo.binding'
     _inherits = {'product.attribute': 'openerp_id'}
 
-    _columns = {
-        'openerp_id': fields.many2one(
-            'product.attribute',
-            string='Attribute',
-            required=True,
-            ondelete='cascade'
-        ),
-        'woo_position': fields.integer('WooCommerce Position'),
-        'group_type': fields.selection([('color', 'Color'),
-                                        ('radio', 'Radio'),
-                                        ('select', 'Select')], 'Type'),
-        'public_name': fields.char(
-            'Public Name',
-            translate=True
-        ),
-
-    }
+    openerp_id = fields.Many2one(
+        'product.attribute',
+        string='Attribute',
+        required=True,
+        ondelete='cascade'
+    )
+    woo_position = fields.Integer('WooCommerce Position')
+    group_type = fields.Selection([('color', 'Color'),
+                                 ('radio', 'Radio'),
+        ('select', 'Select')], 'Type')
+    public_name = fields.Char(
+        'Public Name',
+        translate=True
+    )
 
     _defaults = {
         'group_type': 'select',
     }
 
 
-class product_attribute_value(orm.Model):
+class product_attribute_value(models.Model):
     _inherit = 'product.attribute.value'
 
-    _columns = {
-        'woo_bind_ids': fields.one2many(
-            'woo.product.combination.option.value',
-            'openerp_id',
-            string='WooCommerce Bindings'
-        ),
-    }
+    woo_bind_ids = fields.One2many(
+        'woo.product.combination.option.value',
+        'openerp_id',
+        string='WooCommerce Bindings'
+    )
 
 
-class woo_product_combination_option_value(orm.Model):
+class woo_product_combination_option_value(models.Model):
     _name = 'woo.product.combination.option.value'
     _inherit = 'woo.binding'
     _inherits = {'product.attribute.value': 'openerp_id'}
 
-    _columns = {
-        'openerp_id': fields.many2one(
-            'product.attribute.value',
-            string='Attribute',
-            required=True,
-            ondelete='cascade'
-        ),
-        'woo_position': fields.integer('WooCommerce Position'),
-        'id_attribute_group': fields.many2one(
-            'woo.product.combination.option')
-    }
+    openerp_id = fields.Many2one(
+        'product.attribute.value',
+        string='Attribute',
+        required=True,
+        ondelete='cascade'
+    )
+    woo_position = fields.Integer('WooCommerce Position')
+    id_attribute_group = fields.Many2one(
+        'woo.product.combination.option')
 
     _defaults = {
         'woo_position': 1
@@ -213,6 +256,10 @@ class ProductCombinationAdapter(GenericAdapter):
 
         return self._call('products/list',
                           [filters] if filters else [{}])
+
+    def update_inventory(self, id, data):
+        # product_stock.update is too slow
+        return self._call_inventory('product_qty_update', [int(id), data])
 
 
 @woo
@@ -499,5 +546,79 @@ class ProductCombinationOptionValueMapper(ImportMapper):
     @mapping
     def backend_id(self, record):
         return {'backend_id': self.backend_record.id}
+
+
+@woo
+class ProductInventoryExporter(Exporter):
+    _model_name = ['woo.product.combination']
+
+    _map_backorders = {'use_default': 0,
+                       'no': 0,
+                       'yes': 1,
+                       'yes-and-notification': 2,
+                       }
+
+    def _get_data(self, product, fields):
+        result = {}
+        if 'woo_qty' in fields:
+            result.update({
+                'qty': product.woo_qty,
+                # put the stock availability to "out of stock"
+                'is_in_stock': int(product.woo_qty > 0)
+            })
+        if 'manage_stock' in fields:
+            manage = product.manage_stock
+            result.update({
+                'manage_stock': int(manage == 'yes'),
+                'use_config_manage_stock': int(manage == 'use_default'),
+            })
+        if 'backorders' in fields:
+            backorders = product.backorders
+            result.update({
+                'backorders': self._map_backorders[backorders],
+                'use_config_backorders': int(backorders == 'use_default'),
+            })
+        return result
+
+    def run(self, binding_id, fields):
+        """ Export the product inventory to WooCommerce """
+        product = self.model.browse(binding_id)
+        woo_id = self.binder.to_backend(product.id)
+        data = self._get_data(product, fields)
+        self.backend_adapter.update_inventory(woo_id, data)
+
+
+ProductInventoryExport = ProductInventoryExporter  # deprecated
+
+# fields which should not trigger an export of the products
+# but an export of their inventory
+INVENTORY_FIELDS = ('manage_stock',
+                    'woo_qty',
+                    )
+
+
+@on_record_write(model_names='woo.product.combination')
+def woo_product_modified(session, model_name, record_id, vals):
+    if session.context.get('connector_no_export'):
+        return
+    if session.env[model_name].browse(record_id).no_stock_sync:
+        return
+    inventory_fields = list(set(vals).intersection(INVENTORY_FIELDS))
+    if inventory_fields:
+        export_product_inventory.delay(session, model_name,
+                                       record_id, fields=inventory_fields,
+                                       priority=20)
+
+
+@job(default_channel='root.woo')
+@related_action(action=unwrap_binding)
+def export_product_inventory(session, model_name, record_id, fields=None):
+    """ Export the inventory configuration and quantity of a product. """
+    product = session.env[model_name].browse(record_id)
+    backend_id = product.backend_id.id
+    env = get_environment(session, model_name, backend_id)
+    inventory_exporter = env.get_connector_unit(ProductInventoryExporter)
+    return inventory_exporter.run(record_id, fields)
+
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

@@ -280,3 +280,17 @@ def import_record(session, model_name, backend_id, woo_id, force=False):
     env = get_environment(session, model_name, backend_id)
     importer = env.get_connector_unit(WooImporter)
     importer.run(woo_id, force=force)
+
+
+@job
+def export_sale_order_status(session, ids):
+    model_obj = session.pool['woo.sale.order']
+    model_ids = model_obj.search(
+        session.cr,
+        session.uid,
+        [('backend_id', 'in', ids)],
+        context=session.context
+    )
+    model_obj.recompute_woo_qty(
+        session.cr, session.uid, model_ids, context=session.context
+    )

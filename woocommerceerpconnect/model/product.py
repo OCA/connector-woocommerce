@@ -22,12 +22,15 @@
 import logging
 import urllib2
 import xmlrpclib
+from collections import defaultdict
 import base64
-from openerp import models, fields
-from openerp.addons.connector.queue.job import job
+from openerp import models, fields, api
+from openerp.addons.connector.queue.job import job, related_action
 from openerp.addons.connector.exception import MappingError
-from openerp.addons.connector.unit.synchronizer import (Importer,
+from openerp.addons.connector.unit.synchronizer import (Importer, Exporter
                                                         )
+from openerp.addons.connector.event import on_record_write
+from ..related_action import unwrap_binding
 from openerp.addons.connector.unit.mapper import (mapping,
                                                   ImportMapper
                                                   )
@@ -38,6 +41,11 @@ from ..connector import get_environment
 from ..backend import woo
 
 _logger = logging.getLogger(__name__)
+
+
+def chunks(items, length):
+    for index in xrange(0, len(items), length):
+        yield items[index:index + length]
 
 
 class WooProductTemplate(models.Model):
@@ -66,7 +74,68 @@ class WooProductTemplate(models.Model):
     slug = fields.Char('Slung Name')
     credated_at = fields.Date('created_at')
     weight = fields.Float('weight')
+    woo_qty = fields.Float(string='Computed Quantity',
+                           help="Last computed quantity to send \
+                           on WooCommerce.")
+    no_stock_sync = fields.Boolean(
+        string='No Stock Synchronization',
+        required=False,
+        help="Check this to exclude the product "
+             "from stock synchronizations.",
+    )
 
+    RECOMPUTE_QTY_STEP = 1000  # products at a time
+
+    @api.multi
+    def recompute_woo_qty(self):
+        """ Check if the quantity in the stock location configured
+        on the backend has changed since the last export.
+
+        If it has changed, write the updated quantity on `woo_qty`.
+        The write on `woo_qty` will trigger an `on_record_write`
+        event that will create an export job.
+
+        It groups the products by backend to avoid to read the backend
+        informations for each product.
+        """
+        # group products by backend
+        backends = defaultdict(self.browse)
+        for product in self:
+            backends[product.backend_id] |= product
+
+        for backend, products in backends.iteritems():
+            self._recompute_woo_qty_backend(backend, products)
+        return True
+
+    @api.multi
+    def _recompute_woo_qty_backend(self, backend, products,
+                                   read_fields=None):
+        """ Recompute the products quantity for one backend.
+
+        If field names are passed in ``read_fields`` (as a list), they
+        will be read in the product that is used in
+        :meth:`~._woo_qty`.
+
+        """
+
+        if backend.product_stock_field_id:
+            stock_field = backend.product_stock_field_id.name
+        else:
+            stock_field = 'virtual_available'
+        product_fields = ['woo_qty', stock_field]
+        if read_fields:
+            product_fields += read_fields
+        for chunk_ids in chunks(products.ids, self.RECOMPUTE_QTY_STEP):
+            records = self.env['woo.product.template'].browse(chunk_ids)
+            for product in records.read(fields=product_fields):
+                new_qty = self._woo_qty(product, backend, stock_field)
+                if new_qty != product['woo_qty']:
+                    self.browse(product['id']).woo_qty = new_qty
+
+    @api.multi
+    def _woo_qty(self, product, backend, stock_field):
+        """ Return the current quantity for one product."""
+        return product[stock_field]
 
 
 @woo
@@ -113,6 +182,10 @@ class ProductTemplateAdapter(GenericAdapter):
         return self._call('products',
                           [int(id), image_name, storeview_id, 'id'])
 
+    def update_inventory(self, id, data):
+        # product_stock.update is too slow
+        return self._call_inventory('product_qty_update', [int(id), data])
+
 
 @woo
 class ProductBatchImporter(DelayedBatchImporter):
@@ -157,7 +230,6 @@ def import_record(session, model_name, backend_id, woo_id):
 @woo
 class ProductTemplateImporter(WooImporter):
     _model_name = ['woo.product.template']
-
 
     def _import_dependencies(self):
         """ Import the dependencies for the record"""
@@ -396,3 +468,77 @@ def product_import_batch(session, model_name, backend_id, filters=None):
     env = get_environment(session, model_name, backend_id)
     importer = env.get_connector_unit(ProductBatchImporter)
     importer.run(filters=filters)
+
+
+@woo
+class ProductTemplateInventoryExporter(Exporter):
+    _model_name = ['woo.product.template']
+
+    _map_backorders = {'use_default': 0,
+                       'no': 0,
+                       'yes': 1,
+                       'yes-and-notification': 2,
+                       }
+
+    def _get_data(self, product, fields):
+        result = {}
+        if 'woo_qty' in fields:
+            result.update({
+                'qty': product.woo_qty,
+                # put the stock availability to "out of stock"
+                'is_in_stock': int(product.woo_qty > 0)
+            })
+        if 'manage_stock' in fields:
+            manage = product.manage_stock
+            result.update({
+                'manage_stock': int(manage == 'yes'),
+                'use_config_manage_stock': int(manage == 'use_default'),
+            })
+        if 'backorders' in fields:
+            backorders = product.backorders
+            result.update({
+                'backorders': self._map_backorders[backorders],
+                'use_config_backorders': int(backorders == 'use_default'),
+            })
+        return result
+
+    def run(self, binding_id, fields):
+        """ Export the product inventory to WooCommerce """
+        product = self.model.browse(binding_id)
+        woo_id = self.binder.to_backend(product.id)
+        data = self._get_data(product, fields)
+        self.backend_adapter.update_inventory(woo_id, data)
+
+
+ProductTemplateInventoryExport = ProductTemplateInventoryExporter  # deprecated
+
+# fields which should not trigger an export of the products
+# but an export of their inventory
+INVENTORY_FIELDS = ('manage_stock',
+                    'woo_qty',
+                    )
+
+
+@on_record_write(model_names='woo.product.template')
+def woo_product_modified(session, model_name, record_id, vals):
+    if session.context.get('connector_no_export'):
+        return
+    if session.env[model_name].browse(record_id).no_stock_sync:
+        return
+    inventory_fields = list(set(vals).intersection(INVENTORY_FIELDS))
+    if inventory_fields:
+        export_product_inventory.delay(session, model_name,
+                                       record_id, fields=inventory_fields,
+                                       priority=20)
+
+
+@job(default_channel='root.woo')
+@related_action(action=unwrap_binding)
+def export_product_inventory(session, model_name, record_id, fields=None):
+    """ Export the inventory configuration and quantity of a product. """
+    product = session.env[model_name].browse(record_id)
+    backend_id = product.backend_id.id
+    env = get_environment(session, model_name, backend_id)
+    inventory_exporter = env.get_connector_unit(
+        ProductTemplateInventoryExporter)
+    return inventory_exporter.run(record_id, fields)

@@ -51,7 +51,8 @@ class WooModelBinder(WooBinder):
         'woo.delivery.carrier',
         'woo.product.combination',
         'woo.product.combination.option',
-        'woo.product.combination.option.value'
+        'woo.product.combination.option.value',
+        'woo.sale.order.state'
     ]
 
     def to_openerp(self, external_id, unwrap=False, browse=False):

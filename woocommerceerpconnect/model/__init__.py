@@ -28,3 +28,4 @@ from . import product_attribute
 from . import product_combination
 from . import payment
 from . import delivery
+from . import order_status

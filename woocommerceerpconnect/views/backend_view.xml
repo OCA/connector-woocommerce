@@ -38,37 +38,61 @@
 							<field name="verify_ssl" />
 							<field name="default_lang_id" />
 						</group>
-						<group>
-							<label string="Import category" class="oe_inline" />
-							<button name="import_categories" type="object" class="oe_highlight"
-								string="Import in background" />
-						</group>
-						<group>
-							<label string="Import Product" class="oe_inline" />
-							<button name="import_products" type="object" class="oe_highlight"
-								string="Import in background" />
-						</group>
-						<group>
-							<label string="Import Customers" class="oe_inline" />
-							<button name="import_customers" type="object" class="oe_highlight"
-								string="Import in background" />
-						</group>
-						<group>
-                            <label string="Import Sale Orders" class="oe_inline" />
-                            <button name="import_orders" type="object" class="oe_highlight"
-                                string="Import in background" />
-                        </group>
-                        <group>
-                            <label string="Import Payment Methods" class="oe_inline" />
-                            <button name="import_payment_methods" type="object" class="oe_highlight"
-                                string="Import in background" />
-                        </group>
-                         <group>
-                            <label string="Import Shipping Methods" class="oe_inline" />
-                            <button name="import_delivery_methods" type="object" class="oe_highlight"
-                                string="Import in background" />
-                        </group>
-                        
+						<notebook colspan="4">
+							<page string="Import Data">
+								<group>
+									<label string="Import Categories" class="oe_inline" />
+									<button name="import_categories" type="object" class="oe_highlight"
+										string="Import in background" />
+								</group>
+								<group>
+									<label string="Import Products" class="oe_inline" />
+									<button name="import_products" type="object" class="oe_highlight"
+										string="Import in background" />
+								</group>
+								<group>
+									<label string="Import Customers" class="oe_inline" />
+									<button name="import_customers" type="object" class="oe_highlight"
+										string="Import in background" />
+								</group>
+								<group>
+                                    <label string="Import Order States" class="oe_inline" />
+                                    <button name="import_order_states" type="object" class="oe_highlight"
+                                        string="Import in background" />
+                                </group>
+								<group>
+									<label string="Import Sale Orders" class="oe_inline" />
+									<button name="import_orders" type="object" class="oe_highlight"
+										string="Import in background" />
+								</group>
+								<group>
+									<label string="Import Payment Methods" class="oe_inline" />
+									<button name="import_payment_methods" type="object"
+										class="oe_highlight" string="Import in background" />
+								</group>
+								<group>
+									<label string="Import Shipping Methods" class="oe_inline" />
+									<button name="import_delivery_methods" type="object"
+										class="oe_highlight" string="Import in background" />
+								</group>
+								</page>
+								<page string="Export Data">
+									<group>
+										<label string="Update all the products stock quantities"
+											class="oe_inline" />
+										<button name="update_product_stock_qty" type="object" class="oe_highlight"
+										string="Update" />
+									</group>
+								</page>
+								<page name="advanced_configuration" string="Advanced Configuration">
+									<group>
+										<field name="product_stock_field_id"
+										widget="selection"
+										domain="[('model', 'in', ['product.product', 'product.template']), 
+ 											('ttype', '=', 'float')]"/> 
+									</group>
+								</page>
+						</notebook>
 					</sheet>
 				</form>
 			</field>
