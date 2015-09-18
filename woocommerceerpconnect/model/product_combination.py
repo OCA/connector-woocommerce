@@ -420,6 +420,10 @@ class ProductCombinationMapper(ImportMapper):
     def backend_id(self, record):
         return {'backend_id': self.backend_record.id}
 
+    @mapping
+    def price(self, record):
+        return {'lst_price': float(record['product']['price']) or 0.0}
+
 
 @woo
 class ProductCombinationOptionAdapter(GenericAdapter):

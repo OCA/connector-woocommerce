@@ -98,12 +98,12 @@ class SaleOrderStateBatchImporter(DelayedBatchImporter):
 
     def run(self, filters=None):
         """ Run the synchronization """
-        from_date = filters.pop('from_date', None)
-        to_date = filters.pop('to_date', None)
+#         from_date = filters.pop('from_date', None)
+#         to_date = filters.pop('to_date', None)
         record_ids = self.backend_adapter.search(
-            filters,
-            from_date=from_date,
-            to_date=to_date,
+            filters
+            #             from_date=from_date,
+            #             to_date=to_date,
         )
         _logger.info('search for woo order status %s returned %s',
                      filters, record_ids)

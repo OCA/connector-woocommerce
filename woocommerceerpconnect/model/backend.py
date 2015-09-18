@@ -30,7 +30,7 @@ from .customer import customer_import_batch
 from .sale import sale_order_import_batch
 from .payment import payment_method_import_batch
 from .delivery import delivery_method_import_batch
-from .order_status import order_state_import_batch
+from ..unit.import_synchronizer import import_batch
 
 
 class wc_backend(models.Model):
@@ -68,6 +68,15 @@ class wc_backend(models.Model):
              "stock inventory updates.\nIf empty, Quantity Available "
              "is used.",
     )
+
+    def synchronize_basedata(self, cr, uid, ids, context=None):
+        if not hasattr(ids, '__iter__'):
+            ids = [ids]
+        session = ConnectorSession(cr, uid, context=context)
+        for backend_id in ids:
+            import_batch(session, 'woo.res.currency', backend_id)
+            import_batch(session, 'woo.sale.order.state', backend_id)
+        return True
 
     @api.multi
     def get_product_ids(self, data):
@@ -209,19 +218,6 @@ class wc_backend(models.Model):
         return True
 
     @api.multi
-    def import_order_state(self):
-        session = ConnectorSession(self.env.cr, self.env.uid,
-                                   context=self.env.context)
-        import_start_time = datetime.now()
-        backend_id = self.id
-        from_date = None
-        order_state_import_batch.delay(
-            session, 'woo.sale.order.state', backend_id,
-            {'from_date': from_date,
-             'to_date': import_start_time}, priority=4)
-        return True
-
-    @api.multi
     def import_categories(self):
         """ Import Product categories """
         for backend in self:
@@ -261,13 +257,6 @@ class wc_backend(models.Model):
         """ Import Payment Methods from all websites """
         for backend in self:
             backend.import_delivery_method()
-        return True
-
-    @api.multi
-    def import_order_states(self):
-        """ Import Payment Methods from all websites """
-        for backend in self:
-            backend.import_order_state()
         return True
 
     @api.multi

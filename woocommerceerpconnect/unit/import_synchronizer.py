@@ -208,9 +208,10 @@ class WooImporter(Importer):
         else:
             record = self._create_data(map_record)
             binding = self._create(record)
-        self.binder.bind(self.woo_id, binding)
+        if binding:
+            self.binder.bind(self.woo_id, binding)
 
-        self._after_import(binding)
+            self._after_import(binding)
 
 
 Woo = WooImporter
@@ -294,3 +295,11 @@ def export_sale_order_status(session, ids):
     model_obj.recompute_woo_qty(
         session.cr, session.uid, model_ids, context=session.context
     )
+
+
+@job
+def import_batch(session, model_name, backend_id, filters=None, **kwargs):
+    """ Prepare a batch import of records from Woocommerce """
+    env = get_environment(session, model_name, backend_id)
+    importer = env.get_connector_unit(BatchImporter)
+    importer.run(filters=filters, **kwargs)

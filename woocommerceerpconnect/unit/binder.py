@@ -52,7 +52,8 @@ class WooModelBinder(WooBinder):
         'woo.product.combination',
         'woo.product.combination.option',
         'woo.product.combination.option.value',
-        'woo.sale.order.state'
+        'woo.sale.order.state',
+        'woo.res.currency'
     ]
 
     def to_openerp(self, external_id, unwrap=False, browse=False):

@@ -203,7 +203,7 @@ class WooCRUDAdapter(CRUDAdapter):
                 api_method = 'orders/' + str(arguments[0])
                 result_dict = {"order": {
                     'status': arguments[1]['order_history']['id_order_state']
-                    }
+                }
                 }
 
                 api.post(api_method, result_dict)
