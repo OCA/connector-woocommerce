@@ -353,7 +353,7 @@ class ProductImageImporter(Importer):
             binary = urllib2.urlopen(request)
         except urllib2.HTTPError as err:
             if err.code == 404:
-            # the image is just missing, we skip it
+                # the image is just missing, we skip it
                 return
             else:
                 # we don't know why we couldn't download the image
