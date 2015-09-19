@@ -25,6 +25,7 @@ install:
   - git clone https://github.com/OCA/connector-ecommerce.git $HOME/connector-ecommerce -b ${VERSION}
   - git clone https://github.com/OCA/e-commerce.git $HOME/e-commerce -b ${VERSION}
   - git clone https://github.com/OCA/sale-workflow $HOME/sale-workflow -b ${VERSION}
+  - git clone https://github.com/OCA/product-attribute $HOME/product-attribute -b ${VERSION}
   - travis_install_nightly
   - pip install woocommerce
 
