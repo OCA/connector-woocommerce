@@ -177,8 +177,8 @@ class woo_product_combination_option(models.Model):
     )
     woo_position = fields.Integer('WooCommerce Position')
     group_type = fields.Selection([('color', 'Color'),
-                                 ('radio', 'Radio'),
-        ('select', 'Select')], 'Type')
+                                  ('radio', 'Radio'),
+                                  ('select', 'Select')], 'Type')
     public_name = fields.Char(
         'Public Name',
         translate=True
@@ -323,7 +323,7 @@ class ProductCombinationRecordImport(WooImporter):
         return openerp_binding
 
     def _after_import(self, erp_id):
-#         self.woo_record
+#       self.woo_record
         return
 
 
