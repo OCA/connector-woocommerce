@@ -28,8 +28,7 @@
     'maintainer': 'OpenERP SA',
     'website': 'http://www.openerp.com',
     'depends': ['base', 'connector', 'connector_ecommerce',
-                "product_m2mcategories",
-                "product_images"],
+                "product_m2mcategories"],
     'installable': True,
     'auto_install': False,
     'data': [
