@@ -24,3 +24,9 @@ from . import product_category
 from . import product
 from . import customer
 from . import sale
+from . import product_attribute
+from . import product_combination
+from . import payment
+from . import delivery
+from . import order_status
+from . import res_currency

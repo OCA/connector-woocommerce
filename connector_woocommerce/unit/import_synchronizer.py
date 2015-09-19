@@ -201,26 +201,25 @@ class WooImporter(Importer):
 
         # import the missing linked resources
         self._import_dependencies()
-
         map_record = self._map_data()
-
         if binding:
             record = self._update_data(map_record)
             self._update(binding, record)
         else:
             record = self._create_data(map_record)
             binding = self._create(record)
-        self.binder.bind(self.woo_id, binding)
+        if binding:
+            self.binder.bind(self.woo_id, binding)
 
-        self._after_import(binding)
+            self._after_import(binding)
 
 
-WooImportSynchronizer = WooImporter
+Woo = WooImporter
 
 
 class BatchImporter(Importer):
 
-    """ The role of a BatchImporter is to search for a list of
+    """ The role of a Batch is to search for a list of
     items to import, then it can either import them directly or delay
     the import of each item separately.
     """
@@ -239,7 +238,7 @@ class BatchImporter(Importer):
         raise NotImplementedError
 
 
-BatchImportSynchronizer = BatchImporter
+Batch = BatchImporter
 
 
 class DirectBatchImporter(BatchImporter):
@@ -282,3 +281,25 @@ def import_record(session, model_name, backend_id, woo_id, force=False):
     env = get_environment(session, model_name, backend_id)
     importer = env.get_connector_unit(WooImporter)
     importer.run(woo_id, force=force)
+
+
+@job
+def export_sale_order_status(session, ids):
+    model_obj = session.pool['woo.sale.order']
+    model_ids = model_obj.search(
+        session.cr,
+        session.uid,
+        [('backend_id', 'in', ids)],
+        context=session.context
+    )
+    model_obj.recompute_woo_qty(
+        session.cr, session.uid, model_ids, context=session.context
+    )
+
+
+@job
+def import_batch(session, model_name, backend_id, filters=None, **kwargs):
+    """ Prepare a batch import of records from Woocommerce """
+    env = get_environment(session, model_name, backend_id)
+    importer = env.get_connector_unit(BatchImporter)
+    importer.run(filters=filters, **kwargs)

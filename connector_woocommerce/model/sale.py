@@ -21,17 +21,32 @@
 
 import logging
 import xmlrpclib
+
 from openerp import models, fields, api
+from openerp.addons.connector.exception import IDMissingInBackend
 from openerp.addons.connector.queue.job import job
 from openerp.addons.connector.unit.mapper import (mapping,
                                                   ImportMapper
                                                   )
-from openerp.addons.connector.exception import IDMissingInBackend
+from openerp.addons.connector.unit.synchronizer import (Exporter)
+from openerp.addons.connector.event import on_record_write
+from ..backend import woo
+from ..connector import get_environment
 from ..unit.backend_adapter import (GenericAdapter)
 from ..unit.import_synchronizer import (DelayedBatchImporter, WooImporter)
-from ..connector import get_environment
-from ..backend import woo
 _logger = logging.getLogger(__name__)
+
+ORDER_STATUS_MAPPING = {
+    'draft': "Pending Payment",
+    'sent': "",
+    'manual': "Processing",
+    'progress': "",
+    'shipping_except': "",
+    'invoice_except': "",
+    'done': "Completed",
+    'cancel': "Cancelled",
+    'waiting_date': ""
+}
 
 
 class woo_sale_order_status(models.Model):
@@ -132,18 +147,31 @@ class SaleOrderLineImportMapper(ImportMapper):
 
     @mapping
     def product_id(self, record):
-        binder = self.binder_for('woo.product.product')
-        product_id = binder.to_openerp(record['product_id'], unwrap=True)
+        if 'parent_id' in record and record['parent_id']:
+            binder = self.binder_for('woo.product.combination')
+            product_id = binder.to_openerp(record['product_id'], unwrap=True)
+
+        else:
+            binder = self.binder_for('woo.product.template')
+            product_id = binder.to_openerp(record['product_id'], unwrap=True)
+            product = self.env['product.product'].search(
+                [('product_tmpl_id', '=', product_id)])
+            product_id = product.id
         assert product_id is not None, (
             "product_id %s should have been imported in "
             "SaleOrderImporter._import_dependencies" % record['product_id'])
         return {'product_id': product_id}
 
+    @mapping
+    def qunatity(self, record):
+        if record['quantity']:
+            return {'product_uom_quantity': record['quantity']}
+
 
 @woo
 class SaleOrderAdapter(GenericAdapter):
     _model_name = 'woo.sale.order'
-    _woo_model = 'orders'
+    _woo_model = 'orders/details'
 
     def _call(self, method, arguments):
         try:
@@ -176,6 +204,10 @@ class SaleOrderAdapter(GenericAdapter):
 
         return self._call('orders/list',
                           [filters] if filters else [{}])
+
+    def update_sale_state(self, id, data):
+        # product_stock.update is too slow
+        return self._call_order_status('order_status_update', [int(id), data])
 
 
 @woo
@@ -242,9 +274,12 @@ class SaleOrderImporter(WooImporter):
         record = record['items']
         for line in record:
             _logger.debug('line: %s', line)
-            if 'product_id' in line:
+            if 'parent_id' in line and line['parent_id']:
+                self._import_dependency(line['parent_id'],
+                                        'woo.product.template')
+            else:
                 self._import_dependency(line['product_id'],
-                                        'woo.product.product')
+                                        'woo.product.template')
 
     def _clean_woo_items(self, resource):
         """
@@ -314,6 +349,20 @@ class SaleOrderImportMapper(ImportMapper):
                 return {'status_id': False}
 
     @mapping
+    def total(self, record):
+        if record['order']:
+            rec = record['order']
+            if rec['total']:
+                return {'amount_total': rec['total']}
+
+    @mapping
+    def sub_total(self, record):
+        if record['order']:
+            rec = record['order']
+            if rec['subtotal']:
+                return {'amount_untaxed': rec['subtotal']}
+
+    @mapping
     def customer_id(self, record):
         if record['order']:
             rec = record['order']
@@ -375,3 +424,52 @@ def sale_order_import_batch(session, model_name, backend_id, filters=None):
     env = get_environment(session, model_name, backend_id)
     importer = env.get_connector_unit(SaleOrderBatchImporter)
     importer.run(filters=filters)
+
+
+@woo
+class SaleStateExport(Exporter):
+    _model_name = ['woo.sale.order']
+
+    def run(self, woo_id, state):
+        datas = {
+            'order_history': {
+                'id_order': woo_id,
+                'id_order_state': state,
+            }
+        }
+        self.backend_adapter.update_sale_state(woo_id, datas)
+
+
+@on_record_write(model_names='sale.order')
+def woo_sale_state_modified(session, model_name, record_id,
+                            fields=None):
+    if 'state' in fields:
+        sale = session.browse(model_name, record_id)
+        # a quick test to see if it is worth trying to export sale state
+        new_state = ORDER_STATUS_MAPPING[sale.state]
+        states = session.search('sale.order.state', [('name', '=', new_state)])
+        if states:
+            export_sale_state.delay(session, record_id, priority=20)
+    return True
+
+
+@job
+def export_sale_state(session, record_id):
+    inherit_model = 'woo.sale.order'
+    sale_ids = session.search(inherit_model, [('openerp_id', '=', record_id)])
+    if not isinstance(sale_ids, list):
+        sale_ids = [sale_ids]
+    for sale in session.browse(inherit_model, sale_ids):
+        backend_id = sale.backend_id.id
+        new_state = ORDER_STATUS_MAPPING[sale.state]
+        state_ids = session.search(
+            'sale.order.state', [('name', '=', new_state)])
+        woo_state_ids = session.search(
+            'woo.sale.order.state', [('openerp_id', '=', state_ids[0])])
+        woo_state = session.browse(
+            'woo.sale.order.state', woo_state_ids[0])
+        env = get_environment(session, inherit_model, backend_id)
+        sale_exporter = env.get_connector_unit(SaleStateExport)
+        if woo_state:
+            sale_exporter.run(
+                sale.woo_id, woo_state.woo_id)
