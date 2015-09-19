@@ -323,7 +323,6 @@ class ProductCombinationRecordImport(WooImporter):
         return openerp_binding
 
     def _after_import(self, erp_id):
-#       self.woo_record
         return
 
 
