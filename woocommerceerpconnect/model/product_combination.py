@@ -121,7 +121,7 @@ class woo_product_combination(models.Model):
 
         for backend, products in backends.iteritems():
             self._recompute_woo_qty_backend(backend, products)
-        return True
+        return product.main_template_id
 
     @api.multi
     def _recompute_woo_qty_backend(self, backend, products,

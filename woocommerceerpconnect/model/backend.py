@@ -272,7 +272,11 @@ class wc_backend(models.Model):
         woo_product_template_obj = self.env['woo.product.template']
         domain = self._domain_for_update_product_stock_qty()
         woo_products = woo_product_obj.search(domain)
-        woo_products.recompute_woo_qty()
+        template_id = woo_products.recompute_woo_qty()
         woo_product_template = woo_product_template_obj.search(domain)
-        woo_product_template.recompute_woo_qty()
+        woo_product_template = [
+            x for x in woo_product_template if x != template_id]
+        if woo_product_template:
+            for template in woo_product_template:
+                template.recompute_woo_qty()
         return True
