@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 #
 #
-#    Tech-Receptives Solutions Pvt. Ltd.
-#    Copyright (C) 2009-TODAY Tech-Receptives(<http://www.techreceptives.com>).
+#    Author: Guewen Baconnier
+#    Copyright 2013 Camptocamp SA
+#    Copyright (C) 2009-TODAY Tech-Receptives(<http://www.techreceptives.com>)..
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -53,7 +54,7 @@ class WooModelBinder(WooBinder):
         'woo.product.combination.option',
         'woo.product.combination.option.value',
         'woo.sale.order.state',
-        'woo.res.currency'
+        'woo.res.currency',
     ]
 
     def to_openerp(self, external_id, unwrap=False, browse=False):
