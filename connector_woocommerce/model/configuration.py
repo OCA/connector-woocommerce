@@ -32,16 +32,18 @@ _logger = logging.getLogger(__name__)
 
 class Configuration(models.Model):
     _name = 'configuration'
-    _rec_name='currency'
+    _rec_name = 'currency'
     currency = fields.Many2one('res.currency',
                                string="WooCommerce Currency",
                                readonly=True)
-    currency_position = fields.Char(string="Currency Position",readonly=True)
-    decimal_seperator = fields.Char(string="Decimal Seperator",readonly=True)
-    decimals = fields.Integer(string="Decimals",readonly=True)
-    thousand_seperator = fields.Char(string="Thousand Seperator",readonly=True)
-    country = fields.Many2many('res.country', string= "Countries")
+    currency_position = fields.Char(string="Currency Position", readonly=True)
+    decimal_seperator = fields.Char(string="Decimal Seperator", readonly=True)
+    decimals = fields.Integer(string="Decimals", readonly=True)
+    thousand_seperator = fields.Char(
+        string="Thousand Seperator", readonly=True)
+    country = fields.Many2many('res.country', string="Countries")
 ''
+
 
 class WooConfiguration(models.Model):
     _name = 'woo.configuration'
@@ -132,7 +134,6 @@ class ConfigurationImporter(WooImporter):
         return
 
     def _create(self, data):
-            print "==============data=========", data
             openerp_binding = super(ConfigurationImporter, self)._create(data)
             return openerp_binding
 
@@ -159,18 +160,16 @@ class ConfigurationImportMapper(ImportMapper):
         currency = self.env['res.currency'].search(
             [('name', '=', record['Currency'])])
         return {'currency': currency.id}
-    
+
     @mapping
     def country(self, record):
-        print "=================record============",record
-        country_ids=[]
-        specific_countries=record['Specific_Countries']
+        country_ids = []
+        specific_countries = record['Specific_Countries']
         for specific_country in specific_countries:
             country = self.env['res.country'].search(
                 [('code', '=', specific_country)])
             if country:
                 country_ids.append(country.id)
-        print "============country_ids============",country_ids
         return {'country': [(6, 0, country_ids)]}
 
     @mapping

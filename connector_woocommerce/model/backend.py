@@ -74,9 +74,9 @@ class wc_backend(models.Model):
             ids = [ids]
         session = ConnectorSession(cr, uid, context=context)
         for backend_id in ids:
+            import_batch(session, 'woo.res.currency', backend_id)
             import_batch(session, 'woo.configuration', backend_id)
-#             import_batch(session, 'woo.res.currency', backend_id)
-#             import_batch(session, 'woo.sale.order.state', backend_id)
+            import_batch(session, 'woo.sale.order.state', backend_id)
         return True
 
     @api.multi

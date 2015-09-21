@@ -3,7 +3,7 @@
 #
 #    Author: Guewen Baconnier
 #    Copyright 2013 Camptocamp SA
-#    Copyright (C) 2009-TODAY Tech-Receptives(<http://www.techreceptives.com>)..
+#    Copyright (C) 2009-TODAY Tech-Receptives(<http://www.techreceptives.com>)
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
