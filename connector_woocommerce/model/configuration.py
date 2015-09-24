@@ -42,7 +42,6 @@ class Configuration(models.Model):
     thousand_seperator = fields.Char(
         string="Thousand Seperator", readonly=True)
     country = fields.Many2many('res.country', string="Countries")
-''
 
 
 class WooConfiguration(models.Model):
