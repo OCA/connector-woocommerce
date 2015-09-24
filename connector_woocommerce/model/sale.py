@@ -364,7 +364,7 @@ class SaleOrderImportMapper(ImportMapper):
 
     @mapping
     def delivery(self, record):
-        if record['order']:
+        if record['order'] and record['order']['shipping_lines']:
             rec = record['order']['shipping_lines'][0]
             if rec['method_id']:
                 delivery_id = self.env['woo.delivery.carrier'].search(
