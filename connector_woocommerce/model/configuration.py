@@ -114,7 +114,6 @@ class ConfigurationBatchImporter(DelayedBatchImporter):
         """ Run the synchronization """
         record_ids = self.backend_adapter.search(
             filters)
-        print "===============record_ids===============", record_ids
         _logger.info('search for woo Cuurency Method %s returned %s',
                      filters, record_ids)
 #         for record_id in record_ids:
