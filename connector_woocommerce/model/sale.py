@@ -363,6 +363,16 @@ class SaleOrderImportMapper(ImportMapper):
                 return {'amount_untaxed': rec['subtotal']}
 
     @mapping
+    def delivery(self, record):
+        if record['order'] and record['order']['shipping_lines']:
+            rec = record['order']['shipping_lines'][0]
+            if rec['method_id']:
+                delivery_id = self.env['woo.delivery.carrier'].search(
+                    [('woo_id', '=', rec['method_id'])])
+                if delivery_id:
+                    return {'carrier_id': delivery_id.openerp_id.id}
+
+    @mapping
     def customer_id(self, record):
         if record['order']:
             rec = record['order']

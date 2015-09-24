@@ -31,15 +31,17 @@ We map that in OpenERP to a product.product with an attribute.set defined for
 the main product.
 '''
 import logging
+import urllib2
 import xmlrpclib
 from collections import defaultdict
+import base64
 from ..connector import get_environment
 _logger = logging.getLogger(__name__)
 from openerp import models, api, fields
 from ..backend import woo
 from openerp.addons.connector.queue.job import job, related_action
 from openerp.addons.connector.exception import IDMissingInBackend
-from openerp.addons.connector.unit.synchronizer import (Exporter)
+from openerp.addons.connector.unit.synchronizer import (Importer, Exporter)
 from openerp.addons.connector.event import on_record_write
 from ..related_action import unwrap_binding
 from openerp import SUPERUSER_ID
@@ -154,6 +156,67 @@ class woo_product_combination(models.Model):
         return product[stock_field]
 
 
+@woo
+class ProductCombinationImageImporter(Importer):
+
+    """ Import images for a record.
+
+    Usually called from importers, in ``_after_import``.
+    For instance from the products importer.
+    """
+    _model_name = ['woo.product.combination'
+                   ]
+
+    def _get_images(self, storeview_id=None):
+        return self.backend_adapter.get_images(self.woo_id)
+
+    def _sort_images(self, images):
+        """ Returns a list of images sorted by their priority.
+        An image with the 'image' type is the the primary one.
+        The other images are sorted by their position.
+
+        The returned list is reversed, the items at the end
+        of the list have the higher priority.
+        """
+        if not images:
+            return {}
+        # place the images where the type is 'image' first then
+        # sort them by the reverse priority (last item of the list has
+        # the the higher priority)
+
+    def _get_binary_image(self, image_data):
+        url = image_data['src'].encode('utf8')
+        url = str(url).replace("\\", '')
+        try:
+            request = urllib2.Request(url)
+            binary = urllib2.urlopen(request)
+        except urllib2.HTTPError as err:
+            if err.code == 404:
+                # the image is just missing, we skip it
+                return
+            else:
+                # we don't know why we couldn't download the image
+                # so we propagate the error, the import will fail
+                # and we have to check why it couldn't be accessed
+                raise
+        else:
+            return binary.read()
+
+    def run(self, woo_id, binding_id):
+        self.woo_id = woo_id
+        images = self._get_images()
+        images = images['product']
+        images = images['images']
+        binary = None
+        while not binary and images:
+            binary = self._get_binary_image(images.pop())
+        if not binary:
+            return
+        model = self.model.with_context(connector_no_export=True)
+        binding = model.browse(binding_id)
+        binding.write({'image': base64.b64encode(binary)})
+
+
 class product_attribute(models.Model):
     _inherit = 'product.attribute'
 
@@ -257,6 +320,13 @@ class ProductCombinationAdapter(GenericAdapter):
         return self._call('products/list',
                           [filters] if filters else [{}])
 
+    def get_images(self, id, storeview_id=None):
+        return self._call('products/' + str(id), [int(id), storeview_id, 'id'])
+
+    def read_image(self, id, image_name, storeview_id=None):
+        return self._call('products',
+                          [int(id), image_name, storeview_id, 'id'])
+
     def update_inventory(self, id, data):
         # product_stock.update is too slow
         return self._call_inventory('product_qty_update', [int(id), data])
@@ -322,7 +392,9 @@ class ProductCombinationRecordImport(WooImporter):
             ProductCombinationRecordImport, self)._create(data)
         return openerp_binding
 
-    def _after_import(self, erp_id):
+    def _after_import(self, binding):
+        image_importer = self.unit_for(ProductCombinationImageImporter)
+        image_importer.run(self.woo_id, binding.id)
         return
 
 

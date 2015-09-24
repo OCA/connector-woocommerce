@@ -30,3 +30,4 @@ from . import payment
 from . import delivery
 from . import order_status
 from . import res_currency
+from . import configuration

@@ -23,11 +23,9 @@
 					<header>
 						<button string="Check Connection" class="oe_highlight"
 							type="object" name="test_connection" />
-						<button name="synchronize_basedata"
-                        type="object"
-                        class="oe_highlight"
-                        help="Synchonize datas like language, country, currency, tax"
-                        string="Synchronize Base Data"/>
+						<button name="synchronize_basedata" type="object" class="oe_highlight"
+							help="Synchonize datas like language, country, currency, tax"
+							string="Synchronize Base Data" />
 					</header>
 					<sheet>
 						<label string="Name" />
@@ -75,23 +73,22 @@
 									<button name="import_delivery_methods" type="object"
 										class="oe_highlight" string="Import in background" />
 								</group>
-								</page>
-								<page string="Export Data">
-									<group>
-										<label string="Update all the products stock quantities"
-											class="oe_inline" />
-										<button name="update_product_stock_qty" type="object" class="oe_highlight"
-										string="Update" />
-									</group>
-								</page>
-								<page name="advanced_configuration" string="Advanced Configuration">
-									<group>
-										<field name="product_stock_field_id"
-										widget="selection"
+							</page>
+							<page string="Export Data">
+								<group>
+									<label string="Update all the products stock quantities"
+										class="oe_inline" />
+									<button name="update_product_stock_qty" type="object"
+										class="oe_highlight" string="Update" />
+								</group>
+							</page>
+							<page name="advanced_configuration" string="Advanced Configuration">
+								<group>
+									<field name="product_stock_field_id" widget="selection"
 										domain="[('model', 'in', ['product.product', 'product.template']), 
- 											('ttype', '=', 'float')]"/> 
-									</group>
-								</page>
+ 											('ttype', '=', 'float')]" />
+								</group>
+							</page>
 						</notebook>
 					</sheet>
 				</form>
@@ -124,5 +121,56 @@
 
 		<menuitem id="menu_wc_backend" parent="connector.menu_queue"
 			sequence="20" action="act_open_wc_backend_view" />
+
+		<record id="view_configuration_tree" model="ir.ui.view">
+			<field name="name">configuration.tree</field>
+			<field name="model">configuration</field>
+			<field name="type">tree</field>
+			<field name="priority" eval="8" />
+			<field name="arch" type="xml">
+				<tree string="Configuration">
+					<field name="currency" />
+					<field name="currency_position" />
+					<field name="decimal_seperator" />
+					<field name="decimals" />
+					<field name="thousand_seperator" />
+					<field name="country" widget="many2many_tags" />
+				</tree>
+			</field>
+		</record>
+
+		<record id="view_configuration_form" model="ir.ui.view">
+			<field name="name">configuration.form</field>
+			<field name="model">configuration</field>
+			<field name="type">form</field>
+			<field name="priority" eval="8" />
+			<field name="arch" type="xml">
+				<form string="Configuration">
+					<sheet>
+						<group string="General Configuration">
+							<field name="currency" />
+							<field name="currency_position" />
+							<field name="decimal_seperator" />
+							<field name="decimals" />
+							<field name="thousand_seperator" />
+							<field name="country" widget="many2many_tags" />
+						</group>
+					</sheet>
+				</form>
+			</field>
+		</record>
+
+		<record model="ir.actions.act_window" id="act_configuration">
+			<field name="name">Configuration</field>
+			<field name="type">ir.actions.act_window</field>
+			<field name="res_model">configuration</field>
+			<field name="view_type">form</field>
+			<field name="view_mode">tree,form</field>
+			<field name="domain">[]</field>
+			<field name="context">{}</field>
+		</record>
+
+		<menuitem id="menu_configuration" parent="connector.menu_queue"
+			sequence="20" action="act_configuration" />
 	</data>
 </openerp>
