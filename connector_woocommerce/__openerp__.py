@@ -28,7 +28,7 @@
     'maintainer': 'OpenERP SA',
     'website': 'http://www.openerp.com',
     'depends': ['base', 'connector', 'connector_ecommerce'],
-    'installable': True,
+    'installable': False,
     'auto_install': False,
     'data': [
         "security/ir.model.access.csv",
