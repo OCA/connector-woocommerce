@@ -23,9 +23,12 @@ import socket
 import logging
 import xmlrpclib
 from woocommerce import API
+
 from openerp.addons.connector.unit.backend_adapter import CRUDAdapter
 from openerp.addons.connector.exception import (NetworkRetryableError,
                                                 RetryableJobError)
+from openerp.tools.safe_eval import safe_eval
+
 from datetime import datetime
 _logger = logging.getLogger(__name__)
 
@@ -146,9 +149,9 @@ class WooCRUDAdapter(CRUDAdapter):
                             'false', 'False')
                         result = result.replace('true', 'True')
                         result = result.replace('null', 'False')
-                        result = eval(result)
+                        result = safe_eval(result)
                     else:
-                        result = eval(api.get(method).content)
+                        result = safe_eval(api.get(method).content)
                 except:
                     _logger.error("api.call(%s, %s) failed", method, arguments)
                     raise
