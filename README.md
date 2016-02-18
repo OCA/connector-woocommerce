@@ -10,6 +10,6 @@ Unported addons
 ---------------
 addon | version | summary
 --- | --- | ---
-[connector_woocommerce](connector_woocommerce/) | 8.0.1.0.0 (unported) | WooCommerce Connector
+[connector_woocommerce](connector_woocommerce/) | 8.0.1.0.1 (unported) | WooCommerce Connector
 
 [//]: # (end addons)
