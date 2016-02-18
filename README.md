@@ -10,6 +10,6 @@ Available addons
 ----------------
 addon | version | summary
 --- | --- | ---
-[connector_woocommerce](connector_woocommerce/) | 8.0.1.0.0 | WooCommerce Connector
+[connector_woocommerce](connector_woocommerce/) | 8.0.1.0.1 | WooCommerce Connector
 
 [//]: # (end addons)
