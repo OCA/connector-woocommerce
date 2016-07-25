@@ -76,10 +76,10 @@ def output_recorder(filename):
 
 class WooLocation(object):
 
-    def __init__(self, location, consumer_key, consumre_secret):
+    def __init__(self, location, consumer_key, consumer_secret):
         self._location = location
         self.consumer_key = consumer_key
-        self.consumer_secret = consumre_secret
+        self.consumer_secret = consumer_secret
 
     @property
     def location(self):
