@@ -206,6 +206,9 @@ class GenericAdapter(WooCRUDAdapter):
             # attributes). The right correction is to install the
             # compatibility patch on WooCommerce.
             arguments.append(attributes)
+        if self._woo_model=='products/categories' and type(id)!=int:
+            categ = self._call('%s' % self._woo_model + str(id), [])    
+            return {'product_category':categ['product_categories'][0]}
         return self._call('%s/' % self._woo_model + str(id), [])
 
     def search_read(self, filters=None):

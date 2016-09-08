@@ -79,7 +79,7 @@ class CustomerAdapter(GenericAdapter):
         """
         if filters is None:
             filters = {}
-        WOO_DATETIME_FORMAT = '%Y/%m/%d %H:%M:%S'
+        WOO_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
         dt_fmt = WOO_DATETIME_FORMAT
         if from_date is not None:
             # updated_at include the created records
@@ -89,8 +89,15 @@ class CustomerAdapter(GenericAdapter):
             filters.setdefault('updated_at', {})
             filters['updated_at']['to'] = to_date.strftime(dt_fmt)
         # the search method is on ol_customer instead of customer
-        return self._call('customers/list',
+        customer_count = self._call('customers/count',
                           [filters] if filters else [{}])
+
+        get_list = self._call('customers?fields=id&filter[limit]='+str(customer_count['count'])+'&filter[updated_at_max]='+filters['updated_at']['to'] or None +'&filter[updated_at_min]='+filters['updated_at']['from'] or None,
+                          [filters] if filters else [{}])
+        customer_list=[]
+        for customer in get_list['customers']:
+            customer_list.append(customer['id'])
+        return customer_list 
 
 
 @woo
