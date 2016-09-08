@@ -24,7 +24,7 @@
     'version': '8.0.1.0.2',
     'category': 'customized',
     'description': """Techspawn WooCommerce Connector.""",
-    'author': 'Techspawn',
+    'author': 'Techspawn Solutions Pvt. Ltd. India',
     'maintainer': 'OpenERP SA',
     'website': 'http://www.openerp.com',
     'depends': ['base', 'connector', 'connector_ecommerce'],
