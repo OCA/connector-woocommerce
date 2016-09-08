@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 #
 #
-#    Tech-Receptives Solutions Pvt. Ltd.
-#    Copyright (C) 2009-TODAY Tech-Receptives(<http://www.techreceptives.com>).
+#    TechSpawn Solutions Pvt. Ltd.
+#    Copyright (C) 2016-TODAY TechSpawn(<http://www.techspawn.com>).
+#    authors : Vinay Bhawsar, Saumil Thaker, Samir Panda
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -16,15 +17,14 @@
 #
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#
+
 
 {
     'name': 'WooCommerce Connector',
-    'version': '8.0.1.0.1',
+    'version': '8.0.1.0.2',
     'category': 'customized',
-    'description': """WooCommerce Connector.""",
-    'author': 'Tech Receptives',
+    'description': """Techspawn WooCommerce Connector.""",
+    'author': 'Techspawn',
     'maintainer': 'OpenERP SA',
     'website': 'http://www.openerp.com',
     'depends': ['base', 'connector', 'connector_ecommerce'],
