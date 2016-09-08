@@ -91,7 +91,6 @@ class CustomerAdapter(GenericAdapter):
         # the search method is on ol_customer instead of customer
         customer_count = self._call('customers/count',
                           [filters] if filters else [{}])
-
         get_list = self._call('customers?fields=id&filter[limit]='+str(customer_count['count'])+'&filter[updated_at_max]='+filters['updated_at']['to'] or None +'&filter[updated_at_min]='+filters['updated_at']['from'] or None,
                           [filters] if filters else [{}])
         customer_list=[]
