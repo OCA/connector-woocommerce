@@ -19,6 +19,7 @@
 #
 #
 
+
 import openerp
 from openerp.addons.connector.connector import Binder
 from ..backend import woo

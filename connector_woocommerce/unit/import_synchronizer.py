@@ -19,6 +19,7 @@
 #
 #
 
+
 import logging
 from openerp import fields, _
 from openerp.addons.connector.queue.job import job, related_action

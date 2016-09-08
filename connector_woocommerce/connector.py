@@ -19,6 +19,8 @@
 #
 #
 
+
+
 from openerp import models, fields
 from openerp.addons.connector.connector import (ConnectorEnvironment,
                                                 install_in_connector)

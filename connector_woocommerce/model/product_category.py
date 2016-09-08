@@ -4,6 +4,9 @@
 #    Tech-Receptives Solutions Pvt. Ltd.
 #    Copyright (C) 2009-TODAY Tech-Receptives(<http://www.techreceptives.com>).
 #
+#    Techspwan Solutions Pvt Ltd.
+#    Copyright (C) 2016-TODAY Techspawn Solutions(<http://www.techspawn.com>).
+#
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
 #    published by the Free Software Foundation, either version 3 of the
@@ -17,7 +20,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-#
+
 
 import logging
 import xmlrpclib
@@ -87,7 +90,7 @@ class CategoryAdapter(GenericAdapter):
         """
         if filters is None:
             filters = {}
-        WOO_DATETIME_FORMAT = '%Y/%m/%d %H:%M:%S'
+        WOO_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
         dt_fmt = WOO_DATETIME_FORMAT
         if from_date is not None:
             filters.setdefault('updated_at', {})
@@ -95,9 +98,13 @@ class CategoryAdapter(GenericAdapter):
         if to_date is not None:
             filters.setdefault('updated_at', {})
             filters['updated_at']['to'] = to_date.strftime(dt_fmt)
-        return self._call('products/categories/list',
-                          [filters] if filters else [{}])
 
+        get_list = self._call('products/categories?fields=id&filter[limit]=9999&filter[updated_at_max]='+filters['updated_at']['to'] or None +'&filter[updated_at_min]='+filters['updated_at']['from'] or None,
+                          [filters] if filters else [{}])
+        category_list=[]
+        for category in get_list['product_categories']:
+            category_list.append(category['id'])
+        return category_list
 
 @woo
 class CategoryBatchImporter(DelayedBatchImporter):
@@ -127,6 +134,7 @@ class CategoryBatchImporter(DelayedBatchImporter):
                      filters, record_ids)
         for record_id in record_ids:
             self._import_record(record_id)
+
 CategoryBatchImporter = CategoryBatchImporter
 
 
