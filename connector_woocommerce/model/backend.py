@@ -19,7 +19,6 @@
 #
 #
 
-
 from openerp import models, api, fields, _
 from woocommerce import API
 from openerp.exceptions import Warning

@@ -19,7 +19,6 @@
 #
 #
 
-
 import functools
 from openerp import exceptions, _
 from openerp.addons.connector import related_action
