@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 #
 #
-#    Tech-Receptives Solutions Pvt. Ltd.
-#    Copyright (C) 2009-TODAY Tech-Receptives(<http://www.techreceptives.com>).
+#    TechSpawn Solutions Pvt. Ltd.
+#    Copyright (C) 2016-TODAY TechSpawn(<http://www.techspawn.com>).
+#    authors : Vinay Bhawsar, Saumil Thaker, Samir Panda
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -16,8 +17,7 @@
 #
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#
+
 
 import socket
 import logging
@@ -206,6 +206,9 @@ class GenericAdapter(WooCRUDAdapter):
             # attributes). The right correction is to install the
             # compatibility patch on WooCommerce.
             arguments.append(attributes)
+        if self._woo_model=='products/categories' and type(id)!=int:
+            categ = self._call('%s' % self._woo_model + str(id), [])    
+            return {'product_category':categ['product_categories'][0]}
         return self._call('%s/' % self._woo_model + str(id), [])
 
     def search_read(self, filters=None):
