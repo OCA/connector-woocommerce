@@ -19,8 +19,12 @@
 #
 #
 
-from openerp import models, api, fields, _
-from woocommerce import API
+from openerp import models, api, fields, _, tools
+try:
+    from woocommerce import API
+    WOOCOMMERCE_PATH = tools.find_in_path('woocommerce')
+except (ImportError, IOError) as err:
+    _logger.debug(err)
 from openerp.exceptions import Warning
 from openerp.addons.connector.session import ConnectorSession
 from datetime import datetime
