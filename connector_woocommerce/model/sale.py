@@ -34,7 +34,7 @@ from ..backend import woo
 _logger = logging.getLogger(__name__)
 
 
-class woo_sale_order_status(models.Model):
+class WooSaleOrderStatus(models.Model):
     _name = 'woo.sale.order.status'
     _description = 'WooCommerce Sale Order Status'
 
