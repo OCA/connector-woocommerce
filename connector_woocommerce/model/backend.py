@@ -21,7 +21,7 @@
 
 from openerp import models, api, fields, _, tools
 import logging
-from openerp.exceptions import Warning
+from openerp.exceptions import Warning as UserError
 from openerp.addons.connector.session import ConnectorSession
 from datetime import datetime
 from .product_category import category_import_batch
@@ -36,7 +36,7 @@ except (ImportError, IOError) as err:
     _logger.debug(err)
 
 
-class wc_backend(models.Model):
+class WcBackend(models.Model):
     _name = 'wc.backend'
     _inherit = 'connector.backend'
     _description = 'WooCommerce Backend Configuration'
