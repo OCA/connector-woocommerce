@@ -22,8 +22,6 @@
 import socket
 import logging
 import xmlrpclib
-from woocommerce import API
-
 from openerp.addons.connector.unit.backend_adapter import CRUDAdapter
 from openerp.addons.connector.exception import (NetworkRetryableError,
                                                 RetryableJobError)
@@ -31,6 +29,11 @@ from openerp.tools.safe_eval import safe_eval
 
 from datetime import datetime
 _logger = logging.getLogger(__name__)
+try:
+    from woocommerce import API
+    WOOCOMMERCE_PATH = tools.find_in_path('woocommerce')
+except (ImportError, IOError) as err:
+    _logger.debug(err)
 
 recorder = {}
 

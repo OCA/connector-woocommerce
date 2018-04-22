@@ -19,18 +19,24 @@
 #
 #
 
-from openerp import models, api, fields, _
-from woocommerce import API
-from openerp.exceptions import Warning
+from openerp import models, api, fields, _, tools
+import logging
+from openerp.exceptions import Warning as UserError
 from openerp.addons.connector.session import ConnectorSession
 from datetime import datetime
 from .product_category import category_import_batch
 from .product import product_import_batch
 from .customer import customer_import_batch
 from .sale import sale_order_import_batch
+_logger = logging.getLogger(__name__)
+try:
+    from woocommerce import API
+    WOOCOMMERCE_PATH = tools.find_in_path('woocommerce')
+except (ImportError, IOError) as err:
+    _logger.debug(err)
 
 
-class wc_backend(models.Model):
+class WcBackend(models.Model):
     _name = 'wc.backend'
     _inherit = 'connector.backend'
     _description = 'WooCommerce Backend Configuration'
