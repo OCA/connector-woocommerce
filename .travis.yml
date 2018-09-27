@@ -1,0 +1,33 @@
+addons:
+  apt:
+    packages:
+      - expect-dev  # provides unbuffer utility
+      - python-lxml # because pip installation is slow
+
+language: python
+
+python:
+  - "3.5"
+
+env:
+  - VERSION="12.0" LINT_CHECK="1"
+  - VERSION="12.0" ODOO_REPO="OCA/OCB" LINT_CHECK="0" INCLUDE="connector_woocommerce"
+  - VERSION="12.0" ODOO_REPO="odoo/odoo" LINT_CHECK="0" INCLUDE="connector_woocommerce"
+
+
+
+install:
+  - git clone https://github.com/OCA/maintainer-quality-tools.git ${HOME}/maintainer-quality-tools
+  - export PATH=${HOME}/maintainer-quality-tools/travis:${PATH}
+  - git clone https://github.com/OCA/connector.git $HOME/connector -b ${VERSION}
+  - git clone https://github.com/OCA/connector-ecommerce.git $HOME/connector-ecommerce -b ${VERSION}
+  - git clone https://github.com/OCA/e-commerce.git $HOME/e-commerce -b ${VERSION}
+  - git clone https://github.com/OCA/sale-workflow $HOME/sale-workflow -b ${VERSION}
+  - travis_install_nightly
+  - pip install woocommerce
+
+script:
+  - travis_run_tests
+
+after_success:
+  coveralls
