@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- WooCommerece Product Form View -->
+    <record id="product_normal_form_view" model="ir.ui.view">
+        <field name="name">product.product.form</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id"
+               ref="connector_base_product.product_normal_form_view"/>
+        <field name="arch" type="xml">
+            <page name="connector" position="attributes">
+                <attribute name="invisible">0</attribute>
+            </page>
+            <page name="connector" position="inside">
+                <group>
+                    <field name="sync_data"/>
+                    <field name="woo_backend_id" options="{'no_open': True}"
+                           attrs="{'invisible':[('sync_data', '!=', True)], 'required':[('sync_data', '=', True)]}"/>
+                    <field name="woo_bind_ids" readonly="True"
+                           attrs="{'invisible':[('sync_data', '!=', True)]}"/>
+                </group>
+            </page>
+
+        </field>
+    </record>
+
+    <!-- WooCommerece Product Category Form View -->
+    <record id="product_category_form_view" model="ir.ui.view">
+        <field name="name">product.category.form</field>
+        <field name="model">product.category</field>
+        <field name="inherit_id" ref="product.product_category_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet" position="inside">
+                <notebook name="notebook">
+                    <page name="connector" string="Connectors">
+                        <group>
+                            <field name="sync_data"/>
+                            <field name="woo_backend_id"
+                                   options="{'no_open': True}"
+                                   attrs="{'invisible':[('sync_data', '!=', True)], 'required':[('sync_data', '=', True)]}"/>
+                            <field name="woo_bind_ids" readonly="True"
+                                   attrs="{'invisible':[('sync_data', '!=', True)]}"/>
+                            <field name="woo_image" widget="image"
+                                   class="oe_avatar oe_left"
+                                   attrs="{'invisible':[('sync_data', '!=', True)]}"/>
+                        </group>
+                    </page>
+                </notebook>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
