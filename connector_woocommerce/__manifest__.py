@@ -1,43 +1,39 @@
-# -*- coding: utf-8 -*-
-#
-#
-#    Tech-Receptives Solutions Pvt. Ltd.
-#    Copyright (C) 2009-TODAY Tech-Receptives(<http://www.techreceptives.com>).
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#
+# © 2009 Tech-Receptives Solutions Pvt. Ltd.
+# © 2018 Serpent Consulting Services Pvt. Ltd.
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+# See LICENSE file for full copyright and licensing details.
 
 {
     'name': 'WooCommerce Connector',
-    'version': '8.0.1.0.1',
-    'category': 'customized',
-    'description': """WooCommerce Connector.""",
-    'author': 'Tech Receptives',
-    'maintainer': 'OpenERP SA',
-    'website': 'http://www.openerp.com',
-    'depends': ['base', 'connector', 'connector_ecommerce'],
-    'installable': False,
+    'version': '11.0.1.0.1',
+    'category': 'Ecommerce',
+    'author': """Tech Receptives,
+                 Serpent Consulting Services Pvt. Ltd.,
+                 Odoo Community Association (OCA)""",
+    'contributors': """Tech Receptives,
+                       Serpent Consulting Services Pvt. Ltd.""",
+    'license': 'AGPL-3',
+    'maintainer': 'Odoo Community Association (OCA)',
+    'website': 'https://github.com/OCA/connector-woocommerce',
+    'summary': """Imports the Product's Categories, Products, Customers and
+                Sale orders from WooCommerce, Meanwhile Exports from Odoo
+                To WooCommerce.""",
+    'depends': ['sale_stock', 'connector', 'connector_ecommerce'],
+    'installable': True,
     'auto_install': False,
     'data': [
         "security/ir.model.access.csv",
         "views/backend_view.xml",
+        "views/product_view.xml",
+        "views/res_partner_views.xml",
+        "views/sale_views.xml",
+        "wizard/woo_export_view.xml",
+        "wizard/woo_validation_view.xml",
+        "wizard/backend_instance.xml",
     ],
     'external_dependencies': {
         'python': ['woocommerce'],
     },
-    'js': [],
     'application': True,
     "sequence": 3,
 }
