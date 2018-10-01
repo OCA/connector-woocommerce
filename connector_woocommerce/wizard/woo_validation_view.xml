@@ -1,0 +1,23 @@
+<odoo>
+    <record id="woo_validation_form_view" model="ir.ui.view">
+        <field name="name">WooCommerce Validation</field>
+        <field name="model">wizard.woo.validation</field>
+        <field name="arch" type="xml">
+            <form string="Validation for Woocommerce">
+                <group class="oe_title">
+                    <lebal>The record that you are trying to update is not
+                        exists or deleted by some one from WooCommerce!!!
+                    </lebal>
+                    <newline/>
+                    <lebal>You want to create new one in WooCommerce??</lebal>
+                </group>
+                <footer>
+                    <button name="woo_validate" string="Create" type="object"
+                            class="oe_highlight"/>
+                    or
+                    <button string="Cancel" class="oe_link" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
