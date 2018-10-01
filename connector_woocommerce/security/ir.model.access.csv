@@ -8,5 +8,3 @@ access_woo_product_product,access_woo_product_product,model_woo_product_product,
 access_woo_product_category,access_woo_product_category,model_woo_product_category,connector.group_connector_manager,1,1,1,0
 access_woo_delivery_carrier,access_woo_delivery_carrier,model_woo_delivery_carrier,base.group_user,1,0,0,0
 access_woo_shipping_zone,access_woo_shipping_zone,model_woo_shipping_zone,base.group_user,1,0,0,0
-access_woo_sale_order_status,access_woo_sale_order_status,model_woo_sale_order_status,,1,0,0,0
-access_woo_sale_order_line,access_woo_sale_order_line,model_woo_sale_order_line,,1,0,0,0
