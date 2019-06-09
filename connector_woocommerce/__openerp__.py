@@ -40,4 +40,5 @@
     'js': [],
     'application': True,
     "sequence": 3,
+    'license': 'AGPL-3',
 }
