@@ -1,0 +1,111 @@
+<odoo>
+    <record id="woo_backend_instance_form_view" model="ir.ui.view">
+        <field name="name">WooCommerce Backend Instance</field>
+        <field name="model">wizard.backend.instance</field>
+        <field name="arch" type="xml">
+            <form string="Backend Instances for Woocommerce">
+                <sheet>
+                    <group>
+                        <field string="Shops" name="instance"
+                               placeholder="Select Shop"
+                               widget="many2many_tags"/>
+                    </group>
+                    <notebook>
+                        <page string="WooCommerce to Odoo">
+                            <group>
+                                <group name="Delivery Carrier">
+                                    <separator string="Delivery"/>
+                                    <field string="Import Delivery"
+                                           name="import_shippingzone"/>
+                                </group>
+                                <group name="Products">
+                                    <separator string="Products"/>
+                                    <field string="Import Products"
+                                           name="import_product"/>
+                                </group>
+                                <group name="Product Categories">
+                                    <separator string="Product Categories"/>
+                                    <field string="Import Product Categories"
+                                           name="import_product_category"/>
+                                </group>
+                            </group>
+                            <group>
+                                <group name="Customers">
+                                    <separator string="Customers"/>
+                                    <field string="Import Customers"
+                                           name="import_customer"/>
+                                </group>
+                                <group name="Sales Orders">
+                                    <separator string="Sales Orders"/>
+                                    <field string="Import Sales Orders"
+                                           name="import_sale_order"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Odoo to WooCommerce">
+                            <group>
+                                <group name="Shipping">
+                                    <separator string="Shipping"/>
+                                    <field string="Export Shipping"
+                                           name="export_shippingzone"/>
+                                    <field string="Update Shipping"
+                                           name="update_shippingzone"/>
+                                </group>
+                                <group name="Products">
+                                    <separator string="Products"/>
+                                    <field string="Export Products"
+                                           name="export_product"/>
+                                    <field string="Update Products"
+                                           name="update_product"/>
+                                </group>
+                                <group name="Product Categories">
+                                    <separator string="Product Categories"/>
+                                    <field string="Export Product Categories"
+                                           name="export_product_category"/>
+                                    <field string="Update Product Categories"
+                                           name="update_product_category"/>
+                                </group>
+                                <group name="Customers">
+                                    <separator string="Customers"/>
+                                    <field string="Export Customers"
+                                           name="export_customer"/>
+                                    <field string="Update Customers"
+                                           name="update_customer"/>
+                                </group>
+                                <group name="Sales Orders">
+                                    <separator string="Sales Orders"/>
+                                    <field string="Export Sales Orders"
+                                           name="export_sale_order"/>
+                                    <field string="Update Sales Orders"
+                                           name="update_sale_order"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                    <footer>
+                        <button name="woo_backend_instance" string="Execute"
+                                type="object"
+                                class="oe_highlight"/>
+                        <button string="Cancel" class="oe_link"
+                                special="cancel"/>
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="woo_backend_instance_action">
+        <field name="name">Odoo-WooCommerce Operations</field>
+        <field name="res_model">wizard.backend.instance</field>
+        <field name="view_mode">form</field>
+        <field name="view_type">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_backend_instance" parent="connector.menu_connector"
+              name="Odoo-WooCom. Operations"
+              action="woo_backend_instance_action"
+              groups="connector.group_connector_manager"
+              sequence="20"/>
+
+</odoo>
