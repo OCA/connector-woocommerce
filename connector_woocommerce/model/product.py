@@ -4,6 +4,9 @@
 #    Tech-Receptives Solutions Pvt. Ltd.
 #    Copyright (C) 2009-TODAY Tech-Receptives(<http://www.techreceptives.com>).
 #
+#    Techspwan Solutions Pvt Ltd.
+#    Copyright (C) 2016-TODAY Techspawn Solutions(<http://www.techspawn.com>).
+#
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
 #    published by the Free Software Foundation, either version 3 of the
@@ -77,7 +80,7 @@ class ProductProduct(models.Model):
 @woo
 class ProductProductAdapter(GenericAdapter):
     _model_name = 'woo.product.product'
-    _woo_model = 'products/details'
+    _woo_model = 'products'
 
     def _call(self, method, arguments):
         try:
@@ -98,7 +101,7 @@ class ProductProductAdapter(GenericAdapter):
         """
         if filters is None:
             filters = {}
-        WOO_DATETIME_FORMAT = '%Y/%m/%d %H:%M:%S'
+        WOO_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
         dt_fmt = WOO_DATETIME_FORMAT
         if from_date is not None:
             # updated_at include the created records
@@ -108,8 +111,15 @@ class ProductProductAdapter(GenericAdapter):
             filters.setdefault('updated_at', {})
             filters['updated_at']['to'] = to_date.strftime(dt_fmt)
 
-        return self._call('products/list',
+        product_count = self._call('products/count',
                           [filters] if filters else [{}])
+
+        get_list = self._call('products?fields=id&filter[limit]='+str(product_count['count'])+'&filter[updated_at_max]='+filters['updated_at']['to'] or None +'&filter[updated_at_min]='+filters['updated_at']['from'] or None,
+                          [filters] if filters else [{}])
+        product_list=[]
+        for product in get_list['products']:
+            product_list.append(product['id'])
+        return product_list 
 
     def get_images(self, id, storeview_id=None):
         return self._call('products/' + str(id), [int(id), storeview_id, 'id'])
@@ -159,9 +169,10 @@ class ProductProductImporter(WooImporter):
     def _import_dependencies(self):
         """ Import the dependencies for the record"""
         record = self.woo_record
-        record = record['product']
-        for woo_category_id in record['categories']:
-            self._import_dependency(woo_category_id,
+        if 'product' in record.keys():
+            record = record['product']
+            for woo_category_id in record['categories']:
+                self._import_dependency('?filter[name]='+woo_category_id,
                                     'woo.product.category')
 
     def _create(self, data):
@@ -284,11 +295,12 @@ class ProductProductImportMapper(ImportMapper):
             category_ids = []
             main_categ_id = None
             for woo_category_id in woo_categories:
-                cat_id = binder.to_openerp(woo_category_id, unwrap=True)
+                cat_id = self.env['woo.product.category'].search([('name','=',woo_category_id)])
                 if cat_id is None:
                     raise MappingError("The product category with "
                                        "woo id %s is not imported." %
                                        woo_category_id)
+                cat_id = cat_id[0].id
                 category_ids.append(cat_id)
             if category_ids:
                 main_categ_id = category_ids.pop(0)
