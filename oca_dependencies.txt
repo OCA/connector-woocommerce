@@ -1,0 +1,4 @@
+connector
+connector-ecommerce
+e-commerce
+product-attribute
