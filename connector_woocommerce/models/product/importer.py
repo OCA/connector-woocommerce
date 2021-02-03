@@ -1,13 +1,13 @@
-# © 2009 Tech-Receptives Solutions Pvt. Ltd.
-# © 2018 Serpent Consulting Services Pvt. Ltd.
+# Copyright 2009 Tech-Receptives Solutions Pvt. Ltd.
+# Copyright 2018 FactorLibre
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
-# See LICENSE file for full copyright and licensing details.
 
-import base64
 import logging
-
-import urllib.error
 import urllib.request
+import urllib.error
+import urllib.parse
+import base64
+
 from odoo.addons.component.core import Component
 from odoo.addons.connector.components.mapper import mapping
 from odoo.addons.connector.exception import MappingError
@@ -16,97 +16,62 @@ _logger = logging.getLogger(__name__)
 
 
 class ProductBatchImporter(Component):
-    """ Import the WooCommerce Partners.
+    """ Import the WooCommerce Products.
 
-    For every partner in the list, a delayed job is created.
+    For every product in the list, a delayed job is created.
     """
-    _name = 'woo.product.product.batch.importer'
-    _inherit = 'woo.delayed.batch.importer'
+    _name = 'woocommerce.product.product.batch.importer'
+    _inherit = 'woocommerce.delayed.batch.importer'
     _apply_on = ['woo.product.product']
-
-    def _import_record(self, woo_id):
-        """ Delay a job for the import """
-        super(ProductBatchImporter, self)._import_record(
-            woo_id)
 
     def run(self, filters=None):
         """ Run the synchronization """
         from_date = filters.pop('from_date', None)
         to_date = filters.pop('to_date', None)
         record_ids = self.backend_adapter.search(
-            method='get',
-            filters=filters,
+            filters,
             from_date=from_date,
             to_date=to_date,
         )
-        product_ref = self.env['woo.product.product']
-        record = []
-        # Get external ids from odoo for comparison
-        product_rec = product_ref.search([('external_id', '!=', '')])
-        for ext_id in product_rec:
-            record.append(int(ext_id.external_id))
-        # Get difference ids
-        diff = list(set(record) - set(record_ids))
-        for del_woo_rec in diff:
-            woo_product_id = product_ref.search(
-                [('external_id', '=', del_woo_rec)])
-            product_id = woo_product_id.odoo_id
-            odoo_product_id = self.env['product.product'].search(
-                [('id', '=', product_id.id)])
-            # Delete reference from odoo
-            odoo_product_id.write({
-                'woo_bind_ids': [(3, odoo_product_id.woo_bind_ids[0].id)],
-                'sync_data': False,
-                'woo_backend_id': None
-            })
-
-        _logger.info('search for woo Products %s returned %s',
-                     filters, record_ids)
+        _logger.debug('search for woo Products %s returned %s',
+                      filters, record_ids)
         for record_id in record_ids:
             self._import_record(record_id)
 
 
 class ProductProductImporter(Component):
-    _name = 'woo.product.product.importer'
-    _inherit = 'woo.importer'
+    _name = 'woocommerce.product.product.importer'
+    _inherit = 'woocommerce.importer'
     _apply_on = ['woo.product.product']
 
-    def _create(self, data):
-        odoo_binding = super(ProductProductImporter, self)._create(data)
-        # Adding Creation Checkpoint
-        self.backend_record.add_checkpoint(odoo_binding)
-        return odoo_binding
-
-    def _update(self, binding, data):
-        """ Update an Odoo record """
-        super(ProductProductImporter, self)._update(binding, data)
-        # Adding updation checkpoint
-        return
-
-    def _before_import(self):
-        """ Hook called before the import"""
-        return
+    def _import_dependencies(self):
+        """ Import the dependencies for the record"""
+        record = self.woo_record
+        for woo_category in record['categories']:
+            self._import_dependency(woo_category['id'],
+                                    'woo.product.category')
 
     def _after_import(self, binding):
         """ Hook called at the end of the import """
         image_importer = self.component(usage='product.image.importer')
-        image_importer.run(self.external_id, binding.id)
+        image_importer.run(self.woo_record, binding)
         return
 
 
 class ProductImageImporter(Component):
+
     """ Import images for a record.
 
     Usually called from importers, in ``_after_import``.
     For instance from the products importer.
     """
-    _name = 'woo.product.image.importer'
-    _inherit = 'woo.importer'
+    _name = 'woocommerce.product.image.importer'
+    _inherit = 'woocommerce.importer'
     _apply_on = ['woo.product.product']
     _usage = 'product.image.importer'
 
-    def _get_images(self):
-        return self.backend_adapter.get_images(self.woo_id)
+    def _get_images(self, storeview_id=None):
+        return self.backend_adapter.get_images(self.external_id)
 
     def _sort_images(self, images):
         """ Returns a list of images sorted by their priority.
@@ -123,7 +88,7 @@ class ProductImageImporter(Component):
         # the the higher priority)
 
     def _get_binary_image(self, image_data):
-        url = str(image_data.get('src')).replace("\\", '')
+        url = image_data['src']
         try:
             request = urllib.request.Request(url)
             binary = urllib.request.urlopen(request)
@@ -139,118 +104,69 @@ class ProductImageImporter(Component):
         else:
             return binary.read()
 
-    def run(self, woo_id, binding_id):
-        self.woo_id = woo_id
-        images = self._get_images()
-        images = images['product']
-        images = images['images']
+    def _write_image_data(self, binding, binary, image_data):
+        binding = binding.with_context(connector_no_export=True)
+        binding.write({'image': base64.b64encode(binary)})
+
+    def run(self, woo_record, binding):
+        images = woo_record['images']
         binary = None
         while not binary and images:
-            binary = self._get_binary_image(images.pop())
+            image_data = images.pop()
+            binary = self._get_binary_image(image_data)
         if not binary:
             return
-        model = self.model.with_context(connector_no_export=True)
-        binding = model.browse(binding_id)
-        binding.write({'image': base64.b64encode(binary)})
+        self._write_image_data(binding, binary, image_data)
 
 
 class ProductProductImportMapper(Component):
-    _name = 'woo.product.product.import.mapper'
-    _inherit = 'woo.import.mapper'
-    _apply_on = ['woo.product.product']
+    _name = 'woocommerce.product.product.import.mapper'
+    _inherit = 'woocommerce.import.mapper'
+    _apply_on = 'woo.product.product'
 
     direct = [
+        ('name', 'name'),
         ('description', 'description'),
         ('weight', 'weight'),
+        ('price', 'list_price')
     ]
 
     @mapping
     def is_active(self, record):
         """Check if the product is active in Woo
-        and set active flag in Odoo
+        and set active flag in OpenERP
         status == 1 in Woo means active"""
-        if record['product']:
-            rec = record['product']
-            return {'active': rec['visible']}
-
-    @mapping
-    def in_stock(self, record):
-        if record['product']:
-            rec = record['product']
-            return {'in_stock': rec['in_stock']}
-
-    @mapping
-    def name(self, record):
-        if record['product']:
-            rec = record['product']
-            return {'name': rec['title']}
-
-    @mapping
-    def website_published(self, record):
-        if record['product']:
-            rec = record['product']
-            if rec['status'] == 'publish':
-                return {'website_published': True}
-            else:
-                return {'website_published': False}
+        return {'active': record.get('catalog_visibility') == 'visible'}
 
     @mapping
     def type(self, record):
-        if record['product']:
-            rec = record['product']
-            if rec['type'] == 'simple':
-                return {'type': 'product'}
+        if record['type'] == 'simple':
+            return {'type': 'product'}
 
     @mapping
     def categories(self, record):
-        if record['product']:
-            rec = record['product']
-            woo_categories = rec['categories']
-            binder = self.binder_for('woo.product.category')
-            category_ids = []
-            main_categ_id = None
-            for woo_category_id in woo_categories:
-                cat_id = binder.to_internal(woo_category_id, unwrap=True)
-                if cat_id is None:
-                    raise MappingError("The product category with "
-                                       "woo id %s is not imported." %
-                                       woo_category_id)
-                category_ids.append(cat_id.id)
-            if category_ids:
-                main_categ_id = category_ids.pop(0)
-            result = {'woo_categ_ids': [(6, 0, category_ids)]}
-            if main_categ_id:  # Odoo assign 'All Products' if not specified
-                result['categ_id'] = main_categ_id
-            return result
+        woo_categories = record['categories']
+        binder = self.binder_for('woo.product.category')
 
-    @mapping
-    def price(self, record):
-        """ The price is imported at the creation of
-        the product, then it is only modified and exported
-        from Odoo """
-        if record['product']:
-            rec = record['product']
-            return {'list_price': rec and rec['price'] or 0.0}
+        category_ids = []
+        main_categ_id = None
 
-    @mapping
-    def sale_price(self, record):
-        """ The price is imported at the creation of
-        the product, then it is only modified and exported
-        from Odoo """
-        if record['product']:
-            rec = record['product']
-            return {'standard_price': rec and rec['sale_price'] or 0.0}
+        for woo_category in woo_categories:
+            cat = binder.to_internal(woo_category['id'], unwrap=True)
+            if not cat:
+                raise MappingError("The product category with "
+                                   "woo id %s is not imported." %
+                                   woo_category['id'])
+            category_ids.append(cat.id)
+
+        if category_ids:
+            main_categ_id = category_ids.pop(0)
+
+        result = {'categ_ids': [(6, 0, category_ids)]}
+        if main_categ_id:  # OpenERP assign 'All Products' if not specified
+            result['categ_id'] = main_categ_id
+        return result
 
     @mapping
     def backend_id(self, record):
         return {'backend_id': self.backend_record.id}
-
-    # Required for export
-    @mapping
-    def sync_data(self, record):
-        if record.get('product'):
-            return {'sync_data': True}
-
-    @mapping
-    def woo_backend_id(self, record):
-        return {'woo_backend_id': self.backend_record.id}
