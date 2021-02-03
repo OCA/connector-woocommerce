@@ -3,24 +3,25 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 import logging
-
 from odoo import models, fields
 from odoo.addons.component.core import Component
+
+from ...components.backend_adapter import WOO_DATETIME_FORMAT
 
 _logger = logging.getLogger(__name__)
 
 
-class WooProductProduct(models.Model):
-    _name = "woo.product.product"
+class WooResPartner(models.Model):
+    _name = "woo.res.partner"
     _inherit = "woo.binding"
-    _inherits = {"product.product": "odoo_id"}
-    _description = "woo product product"
+    _inherits = {"res.partner": "odoo_id"}
+    _description = "woo res partner"
 
     _rec_name = "name"
 
     odoo_id = fields.Many2one(
-        comodel_name="product.product",
-        string="product",
+        comodel_name="res.partner",
+        string="Partner",
         required=True,
         ondelete="cascade",
     )
@@ -28,22 +29,15 @@ class WooProductProduct(models.Model):
         comodel_name="wc.backend",
         string="Woo Backend",
         store=True,
-        required=True,
     )
 
-    slug = fields.Char(
-        string="Slug Name",
-    )
-    created_at = fields.Date()
-    weight = fields.Float()
 
-
-class ProductProductAdapter(Component):
-    _name = "woocommerce.product.product.adapter"
+class CustomerAdapter(Component):
+    _name = "woocommerce.partner.adapter"
     _inherit = "woocommerce.adapter"
-    _apply_on = "woo.product.product"
+    _apply_on = "woo.res.partner"
 
-    _woo_model = "products"
+    _woo_model = "customers"
 
     def search(self, filters=None, from_date=None, to_date=None):
         """ Search records according to some criteria and return a
@@ -53,7 +47,6 @@ class ProductProductAdapter(Component):
         """
         if not filters:
             filters = {}
-        WOO_DATETIME_FORMAT = "%Y/%m/%d %H:%M:%S"
         dt_fmt = WOO_DATETIME_FORMAT
         if not from_date:
             # updated_at include the created records
@@ -62,6 +55,6 @@ class ProductProductAdapter(Component):
         if not to_date:
             filters.setdefault("updated_at", {})
             filters["updated_at"]["to"] = to_date.strftime(dt_fmt)
-        products = self._call("products",
-                              [filters] if filters else [{}])
-        return [product["id"] for product in products]
+        # the search method is on ol_customer instead of customer
+        customers = self._call("customers", [filters] if filters else [{}])
+        return [customer["id"] for customer in customers]

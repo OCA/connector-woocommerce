@@ -1,10 +1,22 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_woo_sale_order_status,access_woo_sale_order_status,model_woo_sale_order_status,connector.group_connector_manager,1,1,1,0
-access_woo_sale_order_line,access_woo_sale_order_line,model_woo_sale_order_line,connector.group_connector_manager,1,1,1,0
-access_woo_backend,access_woo_backend,model_woo_backend,connector.group_connector_manager,1,1,1,1
-access_woo_sale_oder,access_woo_sale_order,model_woo_sale_order,connector.group_connector_manager,1,1,1,0
-access_woo_res_partner,access_woo_res_partner,model_woo_res_partner,connector.group_connector_manager,1,1,1,0
-access_woo_product_product,access_woo_product_product,model_woo_product_product,connector.group_connector_manager,1,1,1,0
-access_woo_product_category,access_woo_product_category,model_woo_product_category,connector.group_connector_manager,1,1,1,0
-access_woo_delivery_carrier,access_woo_delivery_carrier,model_woo_delivery_carrier,base.group_user,1,0,0,0
-access_woo_shipping_zone,access_woo_shipping_zone,model_woo_shipping_zone,base.group_user,1,0,0,0
+"id","name","model_id:id","group_id:id","perm_read","perm_write","perm_create","perm_unlink"
+"access_wc_backend","wc_backend connector manager","model_wc_backend","connector.group_connector_manager",1,1,1,1
+"access_wc_backend_user","wc_backend user","model_wc_backend","sales_team.group_sale_salesman",1,0,0,0
+"access_wc_backend_sale_manager","wc_backend manager","model_wc_backend","sales_team.group_sale_manager",1,0,0,0
+"access_woo_res_partner","woo_res_partner connector manager","model_woo_res_partner","connector.group_connector_manager",1,1,1,1
+"access_res_partner_group_user","woo_res_partner group_user","model_woo_res_partner","base.group_user",1,0,0,0
+"access_woo_product_category","woo_product_category connector manager","model_woo_product_category","connector.group_connector_manager",1,1,1,1
+"access_product_category_sale_manager","woo_product.category salemanager","model_woo_product_category","sales_team.group_sale_manager",1,1,1,1
+"access_product_category_user","woo_product.category.user","model_woo_product_category","base.group_user",1,0,0,0
+"access_woo_product_product","woo_product_product connector manager","model_woo_product_product","connector.group_connector_manager",1,1,1,1
+"access_woo_product_product_user","woo_product_product user","model_woo_product_product","sales_team.group_sale_salesman",1,0,0,0
+"access_woo_product_product_sale_manager","woo_product_product sale manager","model_woo_product_product","sales_team.group_sale_manager",1,1,1,1
+"access_woo_sale_order","woo_sale_order connector manager","model_woo_sale_order","connector.group_connector_manager",1,1,1,1
+"access_woo_sale_order_sale_salesman","woo_sale_order","model_woo_sale_order","sales_team.group_sale_salesman",1,1,1,1
+"access_woo_sale_order_sale_manager","woo_sale_order","model_woo_sale_order","sales_team.group_sale_manager",1,1,1,1
+"access_woo_sale_order_line","woo_sale_order_line connector manager","model_woo_sale_order_line","connector.group_connector_manager",1,1,1,1
+"access_woo_sale_order_line_sale_salesman","woo_sale_order_line","model_woo_sale_order_line","sales_team.group_sale_salesman",1,1,1,1
+"access_woo_sale_order_line_sale_manager","woo_sale_order_line","model_woo_sale_order_line","sales_team.group_sale_manager",1,1,1,1
+"access_woo_sale_order_status","woo_sale_order_status connector manager","model_woo_sale_order_status","connector.group_connector_manager",1,1,1,1
+"access_woo_sale_order_status_sale_salesman","woo_sale_order_status","model_woo_sale_order_status","sales_team.group_sale_salesman",1,1,1,1
+"access_woo_sale_order_status_sale_manager","woo_sale_order_status","model_woo_sale_order_status","sales_team.group_sale_manager",1,1,1,1
+"access_woo_sale_order_stock_user","woo_sale_order warehouse user","model_woo_sale_order","stock.group_stock_user",1,1,0,0
