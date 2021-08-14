@@ -9,8 +9,8 @@ Odoo Connector WooCommerce Modules
 
 Unported addons
 ---------------
-addon | version | summary
---- | --- | ---
-[connector_woocommerce](connector_woocommerce/) | 8.0.1.0.1 (unported) | WooCommerce Connector
+addon | version | maintainers | summary
+--- | --- | --- | ---
+[connector_woocommerce](connector_woocommerce/) | 8.0.1.0.1 (unported) |  | WooCommerce Connector
 
 [//]: # (end addons)
