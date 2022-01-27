@@ -26,6 +26,7 @@
     'description': """WooCommerce Connector.""",
     'author': 'Tech Receptives',
     'maintainer': 'OpenERP SA',
+    'license': 'AGPL-3'
     'website': 'http://www.openerp.com',
     'depends': ['base', 'connector', 'connector_ecommerce'],
     'installable': True,
