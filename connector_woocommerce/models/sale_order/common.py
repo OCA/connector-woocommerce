@@ -4,7 +4,8 @@
 
 import logging
 
-from odoo import models, fields, api
+from odoo import api, fields, models
+
 from odoo.addons.component.core import Component
 
 _logger = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ class WooSaleOrder(models.Model):
     woo_order_line_ids = fields.One2many(
         comodel_name="woo.sale.order.line",
         inverse_name="woo_order_id",
-        string="Woo Order Lines"
+        string="Woo Order Lines",
     )
     backend_id = fields.Many2one(
         comodel_name="wc.backend",
@@ -82,7 +83,7 @@ class WooSaleOrderLine(models.Model):
         woo_order_id = values["woo_order_id"]
         binding = self.env["woo.sale.order"].browse(woo_order_id)
         values["order_id"] = binding.odoo_id.id
-        binding = super(WooSaleOrderLine, self).create(values)
+        binding = super().create(values)
         return binding
 
 
@@ -104,7 +105,7 @@ class SaleOrderAdapter(Component):
     _woo_model = "orders"
 
     def search(self, filters=None, from_date=None, to_date=None):
-        """ Search records according to some criteria and return a
+        """Search records according to some criteria and return a
         list of ids
 
         :rtype: list
@@ -120,6 +121,5 @@ class SaleOrderAdapter(Component):
         if not to_date:
             filters.setdefault("updated_at", {})
             filters["updated_at"]["to"] = to_date.strftime(dt_fmt)
-        orders = self._call("orders",
-                            [filters] if filters else [{}])
+        orders = self._call("orders", [filters] if filters else [{}])
         return [order["id"] for order in orders]

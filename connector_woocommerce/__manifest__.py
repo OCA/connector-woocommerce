@@ -5,11 +5,9 @@
     "name": "WooCommerce Connector",
     "version": "12.0.1.0.0",
     "category": "Connector",
-    "author": "Tech Receptives,"
-              "FactorLibre,"
-              "Odoo Community Association (OCA)",
+    "author": "Tech Receptives," "FactorLibre," "Odoo Community Association (OCA)",
     "license": "AGPL-3",
-    "website": "https://github.com/OCA/connector-woocommerce/",
+    "website": "https://github.com/OCA/connector-woocommerce",
     "maintainers": ["cubells"],
     "depends": [
         "connector",

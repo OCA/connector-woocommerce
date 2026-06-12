@@ -3,7 +3,9 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 import logging
-from odoo import models, fields
+
+from odoo import fields, models
+
 from odoo.addons.component.core import Component
 
 _logger = logging.getLogger(__name__)
@@ -48,7 +50,7 @@ class CategoryAdapter(Component):
     _woo_model = "products/categories"
 
     def search(self, filters=None, from_date=None, to_date=None):
-        """ Search records according to some criteria and return a
+        """Search records according to some criteria and return a
         list of ids
 
         :rtype: list
@@ -63,6 +65,5 @@ class CategoryAdapter(Component):
         if not to_date:
             filters.setdefault("updated_at", {})
             filters["updated_at"]["to"] = to_date.strftime(dt_fmt)
-        categories = self._call("products/categories",
-                                [filters] if filters else [{}])
+        categories = self._call("products/categories", [filters] if filters else [{}])
         return [category["id"] for category in categories]

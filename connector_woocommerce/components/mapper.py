@@ -25,4 +25,5 @@ def normalize_datetime(field):
         if record[field] == "0000-00-00 00:00:00":
             return None
         return record[field]
+
     return modifier

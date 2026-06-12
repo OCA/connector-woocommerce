@@ -3,7 +3,9 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 import logging
-from odoo import models, fields
+
+from odoo import fields, models
+
 from odoo.addons.component.core import Component
 
 from ...components.backend_adapter import WOO_DATETIME_FORMAT
@@ -40,7 +42,7 @@ class CustomerAdapter(Component):
     _woo_model = "customers"
 
     def search(self, filters=None, from_date=None, to_date=None):
-        """ Search records according to some criteria and return a
+        """Search records according to some criteria and return a
         list of ids
 
         :rtype: list
