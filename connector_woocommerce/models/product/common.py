@@ -56,11 +56,11 @@ class ProductProductAdapter(Component):
             filters = {}
         WOO_DATETIME_FORMAT = "%Y/%m/%d %H:%M:%S"
         dt_fmt = WOO_DATETIME_FORMAT
-        if not from_date:
+        if from_date:
             # updated_at include the created records
             filters.setdefault("updated_at", {})
             filters["updated_at"]["from"] = from_date.strftime(dt_fmt)
-        if not to_date:
+        if to_date:
             filters.setdefault("updated_at", {})
             filters["updated_at"]["to"] = to_date.strftime(dt_fmt)
         products = self._call("products", [filters] if filters else [{}])

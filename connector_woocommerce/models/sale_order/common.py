@@ -78,13 +78,13 @@ class WooSaleOrderLine(models.Model):
         required=False,
     )
 
-    @api.model
-    def create(self, values):
-        woo_order_id = values["woo_order_id"]
-        binding = self.env["woo.sale.order"].browse(woo_order_id)
-        values["order_id"] = binding.odoo_id.id
-        binding = super().create(values)
-        return binding
+    @api.model_create_multi
+    def create(self, vals_list):
+        for values in vals_list:
+            woo_order_id = values["woo_order_id"]
+            binding = self.env["woo.sale.order"].browse(woo_order_id)
+            values["order_id"] = binding.odoo_id.id
+        return super().create(vals_list)
 
 
 class SaleOrderLine(models.Model):
@@ -114,11 +114,11 @@ class SaleOrderAdapter(Component):
             filters = {}
         WOO_DATETIME_FORMAT = "%Y/%m/%d %H:%M:%S"
         dt_fmt = WOO_DATETIME_FORMAT
-        if not from_date:
+        if from_date:
             # updated_at include the created records
             filters.setdefault("updated_at", {})
             filters["updated_at"]["from"] = from_date.strftime(dt_fmt)
-        if not to_date:
+        if to_date:
             filters.setdefault("updated_at", {})
             filters["updated_at"]["to"] = to_date.strftime(dt_fmt)
         orders = self._call("orders", [filters] if filters else [{}])

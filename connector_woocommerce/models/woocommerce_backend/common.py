@@ -37,6 +37,7 @@ class WooBackend(models.Model):
     name = fields.Char(
         required=True,
     )
+    active = fields.Boolean(default=True)
     location = fields.Char(
         string="Url",
         required=True,
@@ -72,7 +73,6 @@ class WooBackend(models.Model):
     )
 
     @contextmanager
-    @api.multi
     def work_on(self, model_name, **kwargs):
         self.ensure_one()
         # lang = self.default_lang_id
@@ -91,35 +91,29 @@ class WooBackend(models.Model):
         with _super.work_on(model_name, wc_api=wc_api, **kwargs) as work:
             yield work
 
-    @api.multi
     def get_product_ids(self, data):
         product_ids = [x["id"] for x in data["products"]]
         product_ids = sorted(product_ids)
         return product_ids
 
-    @api.multi
     def get_product_category_ids(self, data):
         product_category_ids = [x["id"] for x in data["product_categories"]]
         product_category_ids = sorted(product_category_ids)
         return product_category_ids
 
-    @api.multi
     def get_customer_ids(self, data):
         customer_ids = [x["id"] for x in data["customers"]]
         customer_ids = sorted(customer_ids)
         return customer_ids
 
-    @api.multi
     def get_order_ids(self, data):
         order_ids = self.check_existing_order(data)
         return order_ids
 
-    @api.multi
     def update_existing_order(self, woo_sale_order, data):
         """Enter Your logic for Existing Sale Order"""
         return True
 
-    @api.multi
     def check_existing_order(self, data):
         order_ids = []
         for val in data["orders"]:
@@ -132,7 +126,6 @@ class WooBackend(models.Model):
             order_ids.append(val["id"])
         return order_ids
 
-    @api.multi
     def test_connection(self):
         location = self.location
         cons_key = self.consumer_key
@@ -155,25 +148,21 @@ class WooBackend(models.Model):
         else:
             raise UserError(_("Test Success"))
 
-    @api.multi
     def import_categories(self):
         for backend in self:
             self.env["woo.product.category"].with_delay().import_batch(backend)
         return True
 
-    @api.multi
     def import_products(self):
         for backend in self:
             self.env["woo.product.product"].with_delay().import_batch(backend)
         return True
 
-    @api.multi
     def import_customers(self):
         for backend in self:
             self.env["woo.res.partner"].with_delay().import_batch(backend)
         return True
 
-    @api.multi
     def import_orders(self):
         for backend in self:
             self.env["woo.sale.order"].with_delay().import_batch(backend)

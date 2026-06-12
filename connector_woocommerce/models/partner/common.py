@@ -50,11 +50,11 @@ class CustomerAdapter(Component):
         if not filters:
             filters = {}
         dt_fmt = WOO_DATETIME_FORMAT
-        if not from_date:
+        if from_date:
             # updated_at include the created records
             filters.setdefault("updated_at", {})
             filters["updated_at"]["from"] = from_date.strftime(dt_fmt)
-        if not to_date:
+        if to_date:
             filters.setdefault("updated_at", {})
             filters["updated_at"]["to"] = to_date.strftime(dt_fmt)
         # the search method is on ol_customer instead of customer

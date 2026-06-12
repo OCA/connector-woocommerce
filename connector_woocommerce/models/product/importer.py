@@ -89,6 +89,16 @@ class ProductImageImporter(Component):
     def _get_binary_image(self, image_data):
         url = image_data["src"]
         try:
+            url.encode("ascii")
+        except UnicodeEncodeError:
+            parts = urllib.parse.urlsplit(url)
+            url = urllib.parse.urlunsplit(
+                parts._replace(
+                    path=urllib.parse.quote(parts.path),
+                    query=urllib.parse.quote(parts.query, safe="=&"),
+                )
+            )
+        try:
             request = urllib.request.Request(url)
             binary = urllib.request.urlopen(request)
         except urllib.error.HTTPError as err:
@@ -105,7 +115,7 @@ class ProductImageImporter(Component):
 
     def _write_image_data(self, binding, binary, image_data):
         binding = binding.with_context(connector_no_export=True)
-        binding.write({"image": base64.b64encode(binary)})
+        binding.write({"image_1920": base64.b64encode(binary)})
 
     def run(self, woo_record, binding):
         images = woo_record["images"]
@@ -140,7 +150,7 @@ class ProductProductImportMapper(Component):
     @mapping
     def type(self, record):
         if record["type"] == "simple":
-            return {"type": "product"}
+            return {"type": "consu", "is_storable": True}
 
     @mapping
     def categories(self, record):
@@ -155,7 +165,7 @@ class ProductProductImportMapper(Component):
             if not cat:
                 raise MappingError(
                     "The product category with "
-                    "woo id %s is not imported." % woo_category["id"]
+                    f"woo id {woo_category['id']} is not imported."
                 )
             category_ids.append(cat.id)
 

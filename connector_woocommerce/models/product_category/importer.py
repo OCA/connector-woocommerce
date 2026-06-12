@@ -22,7 +22,7 @@ class CategoryBatchImporter(Component):
 
     def _import_record(self, external_id, job_options=None):
         """Delay a job for the import"""
-        super()._import_record(external_id, job_options=job_options)
+        return super()._import_record(external_id, job_options=job_options)
 
     def run(self, filters=None):
         """Run the synchronization"""
@@ -75,7 +75,7 @@ class ProductCategoryImportMapper(Component):
         if not parent_binding:
             raise MappingError(
                 "The product category with "
-                "woocommerce id %s is not imported." % record["parent_id"]
+                f"woocommerce id {record['parent_id']} is not imported."
             )
 
         parent = parent_binding.odoo_id

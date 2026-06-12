@@ -91,8 +91,12 @@ class WooAPI:
                 consumer_key=self._location.consumer_key,
                 consumer_secret=self._location.consumer_secret,
                 wp_api=True,
-                version="wc/v2",
+                version="wc/v3",
+                query_string_auth=True,
             )
+            # Force basic-via-querystring even on plain HTTP (OAuth1 breaks
+            # behind reverse proxies and dev containers).
+            api.is_ssl = True
             self._api = api
         return self._api
 
@@ -108,8 +112,7 @@ class WooAPI:
                 if not response.ok:
                     if response_json.get("code") and response_json.get("message"):
                         raise FailedJobError(
-                            "%s error: %s - %s"
-                            % (
+                            "{} error: {} - {}".format(
                                 response.status_code,
                                 response_json["code"],
                                 response_json["message"],
@@ -118,7 +121,7 @@ class WooAPI:
                     else:
                         return response.raise_for_status()
                 result = response_json
-            except:
+            except Exception:
                 _logger.error("api.call(%s, %s) failed", method, arguments)
                 raise
             else:
@@ -132,8 +135,8 @@ class WooAPI:
             return result
         except (TimeoutError, OSError, socket.gaierror) as err:
             raise NetworkRetryableError(
-                "A network error caused the failure of the job: " "%s" % err
-            )
+                f"A network error caused the failure of the job: {err}"
+            ) from err
         except xmlrpc.client.ProtocolError as err:
             if err.errcode in [
                 502,  # Bad gateway
@@ -142,58 +145,37 @@ class WooAPI:
             ]:  # Gateway timeout
                 raise RetryableJobError(
                     "A protocol error caused the failure of the job:\n"
-                    "URL: %s\n"
-                    "HTTP/HTTPS headers: %s\n"
-                    "Error code: %d\n"
-                    "Error message: %s\n"
-                    % (err.url, err.headers, err.errcode, err.errmsg)
-                )
+                    f"URL: {err.url}\n"
+                    f"HTTP/HTTPS headers: {err.headers}\n"
+                    f"Error code: {err.errcode}\n"
+                    f"Error message: {err.errmsg}\n"
+                ) from err
             else:
                 raise
 
 
 class WooCRUDAdapter(AbstractComponent):
-    """External Records Adapter for woo"""
+    """External Records Adapter for WooCommerce.
+
+    The CRUD interface (``search``, ``read``, ``search_read``, ``create``,
+    ``write`` and ``delete``) is provided by the connector base component
+    ``base.backend.adapter.crud``. This component only implements the
+    transport layer used to reach the WooCommerce REST API.
+    """
 
     _name = "woocommerce.crud.adapter"
-    _inherit = ["base.backend.adapter", "base.woocommerce.connector"]
+    _inherit = ["base.backend.adapter.crud", "base.woocommerce.connector"]
     _usage = "backend.adapter"
-
-    def search(self, filters=None):
-        """Search records according to some criterias
-        and returns a list of ids"""
-        raise NotImplementedError
-
-    def read(self, id, attributes=None):
-        """Returns the information of a record"""
-        raise NotImplementedError
-
-    def search_read(self, filters=None):
-        """Search records according to some criterias
-        and returns their information"""
-        raise NotImplementedError
-
-    def create(self, data):
-        """Create a record on the external system"""
-        raise NotImplementedError
-
-    def write(self, id, data):
-        """Update records on the external system"""
-        raise NotImplementedError
-
-    def delete(self, id):
-        """Delete a record on the external system"""
-        raise NotImplementedError
 
     def _call(self, method, arguments):
         try:
             wc_api = self.work.wc_api
-        except AttributeError:
+        except AttributeError as err:
             raise AttributeError(
                 "You must provide a wc_api attribute with a "
                 "WooAPI instance to be able to use the "
                 "Backend Adapter."
-            )
+            ) from err
         return wc_api.call(method, arguments)
 
 
@@ -209,9 +191,9 @@ class GenericAdapter(AbstractComponent):
 
         :rtype: list
         """
-        return self._call("%s.search" % self._woo_model, [filters] if filters else [{}])
+        return self._call(f"{self._woo_model}.search", [filters] if filters else [{}])
 
-    def read(self, id, attributes=None):
+    def read_record(self, external_id, attributes=None):
         """Returns the information of a record
 
         :rtype: dict
@@ -224,21 +206,9 @@ class GenericAdapter(AbstractComponent):
             # attributes). The right correction is to install the
             # compatibility patch on WooCommerce.
             arguments.append(attributes)
-        return self._call("%s/" % self._woo_model + str(id), [])
+        return self._call(f"{self._woo_model}/{external_id}", [])
 
     def search_read(self, filters=None):
         """Search records according to some criterias
         and returns their information"""
-        return self._call("%s.list" % self._woo_model, [filters])
-
-    def create(self, data):
-        """Create a record on the external system"""
-        return self._call("%s.create" % self._woo_model, [data])
-
-    def write(self, id, data):
-        """Update records on the external system"""
-        return self._call("%s.update" % self._woo_model, [int(id), data])
-
-    def delete(self, id):
-        """Delete a record on the external system"""
-        return self._call("%s.delete" % self._woo_model, [int(id)])
+        return self._call(f"{self._woo_model}.list", [filters])

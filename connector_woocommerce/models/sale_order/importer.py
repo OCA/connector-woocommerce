@@ -35,17 +35,11 @@ class SaleOrderBatchImporter(Component):
             from_date=from_date,
             to_date=to_date,
         )
-        order_ids = []
+        _logger.info("search for woo orders %s returned %s", filters, record_ids)
+        # Re-import every record: the importer updates the existing binding
+        # idempotently when the order is already present, and creates it
+        # otherwise. We never delete orders from Odoo on the WooCommerce side.
         for record_id in record_ids:
-            woo_sale_order = self.env["woo.sale.order"].search(
-                [("external_id", "=", record_id)]
-            )
-            if woo_sale_order:
-                self.update_existing_order(woo_sale_order[0], record_id)
-            else:
-                order_ids.append(record_id)
-        _logger.info("search for woo partners %s returned %s", filters, record_ids)
-        for record_id in order_ids:
             self._import_record(record_id)
 
 
@@ -133,45 +127,51 @@ class SaleOrderImportMapper(Component):
     @mapping
     def customer_id(self, record):
         binder = self.binder_for("woo.res.partner")
-        if record["customer_id"]:
+        partner = False
+        if record.get("customer_id"):
             partner = binder.to_internal(record["customer_id"], unwrap=True) or False
-            assert partner, "Please Check Customer Role \
-                                in WooCommerce"
-            result = {"partner_id": partner.id}
-        else:
-            customer = record["customer"]["billing_address"]
-            country_id = False
-            state_id = False
-            if customer["country"]:
-                country_id = self.env["res.country"].search(
-                    [("code", "=", customer["country"])]
-                )
-                if country_id:
-                    country_id = country_id.id
-            if customer["state"]:
-                state_id = self.env["res.country.state"].search(
-                    [("code", "=", customer["state"])]
-                )
-                if state_id:
-                    state_id = state_id.id
-            name = customer["first_name"] + " " + customer["last_name"]
-            partner_dict = {
+        if not partner:
+            partner = self._partner_from_billing(record.get("billing") or {})
+        return {"partner_id": partner.id} if partner else {}
+
+    def _partner_from_billing(self, billing):
+        Partner = self.env["res.partner"]
+        email = (billing.get("email") or "").strip()
+        if email:
+            existing = Partner.search([("email", "=ilike", email)], limit=1)
+            if existing:
+                return existing
+        country_id = state_id = False
+        if billing.get("country"):
+            country = self.env["res.country"].search(
+                [("code", "=", billing["country"])], limit=1
+            )
+            country_id = country.id
+        if billing.get("state"):
+            state = self.env["res.country.state"].search(
+                [("code", "=", billing["state"])], limit=1
+            )
+            state_id = state.id
+        name = (
+            " ".join(
+                p for p in [billing.get("first_name"), billing.get("last_name")] if p
+            ).strip()
+            or email
+            or "WooCommerce Guest"
+        )
+        return Partner.create(
+            {
                 "name": name,
-                "city": customer["city"],
-                "phone": customer["phone"],
-                "zip": customer["postcode"],
+                "email": email or False,
+                "street": billing.get("address_1") or False,
+                "street2": billing.get("address_2") or False,
+                "city": billing.get("city") or False,
+                "phone": billing.get("phone") or False,
+                "zip": billing.get("postcode") or False,
                 "state_id": state_id,
                 "country_id": country_id,
             }
-            partner_id = self.env["res.partner"].create(partner_dict)
-            partner_dict.update(
-                {
-                    "backend_id": self.backend_record.id,
-                    "openerp_id": partner_id.id,
-                }
-            )
-            result = {"partner_id": partner_id.id}
-        return result
+        )
 
     @mapping
     def backend_id(self, record):
@@ -185,16 +185,19 @@ class SaleOrderLineImportMapper(Component):
 
     direct = [
         ("quantity", "product_uom_qty"),
-        ("name", "name"),
         ("price", "price_unit"),
     ]
+
+    @mapping
+    def name(self, record):
+        return {"name": record.get("name") or "WC line"}
 
     @mapping
     def product_id(self, record):
         binder = self.binder_for("woo.product.product")
         product = binder.to_internal(record["product_id"], unwrap=True)
         assert product is not None, (
-            "product_id %s should have been imported in "
-            "SaleOrderImporter._import_dependencies" % record["product_id"]
+            f"product_id {record['product_id']} should have been imported in "
+            "SaleOrderImporter._import_dependencies"
         )
         return {"product_id": product.id}

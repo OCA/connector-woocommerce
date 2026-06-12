@@ -1,17 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <odoo>
     <record id="view_wc_backend_tree" model="ir.ui.view">
-        <field name="name">wc.backend.tree</field>
         <field name="model">wc.backend</field>
         <field name="arch" type="xml">
-            <tree string="Backend">
+            <list string="Backend">
                 <field name="name" />
                 <field name="location" />
-            </tree>
+            </list>
         </field>
     </record>
     <record id="view_wc_backend_form" model="ir.ui.view">
-        <field name="name">wc.backend.form</field>
         <field name="model">wc.backend</field>
         <field name="arch" type="xml">
             <form string="Backend">
@@ -79,28 +77,23 @@
             </form>
         </field>
     </record>
-
     <record model="ir.actions.act_window" id="act_open_wc_backend_view">
         <field name="name">Backends</field>
         <field name="res_model">wc.backend</field>
-        <field name="view_type">form</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
     </record>
-
     <record model="ir.actions.act_window.view" id="act_open_wc_backend_view_form">
         <field name="act_window_id" ref="act_open_wc_backend_view" />
         <field name="sequence" eval="20" />
         <field name="view_mode">form</field>
         <field name="view_id" ref="view_wc_backend_form" />
     </record>
-
     <record model="ir.actions.act_window.view" id="act_open_wc_backend_view_tree">
         <field name="act_window_id" ref="act_open_wc_backend_view" />
         <field name="sequence" eval="10" />
-        <field name="view_mode">tree</field>
+        <field name="view_mode">list</field>
         <field name="view_id" ref="view_wc_backend_tree" />
     </record>
-
     <menuitem
         id="menu_woocommerce_root"
         parent="connector.menu_connector_root"
@@ -108,7 +101,6 @@
         sequence="10"
         groups="connector.group_connector_manager"
     />
-
     <menuitem
         id="menu_wc_backend"
         parent="menu_woocommerce_root"
