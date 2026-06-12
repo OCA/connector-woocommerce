@@ -2,12 +2,12 @@
 # Copyright 2018 FactorLibre
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 import logging
-
 from contextlib import contextmanager
 
-from odoo import models, fields, api, _
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
-from ...components.backend_adapter import WooLocation, WooAPI
+
+from ...components.backend_adapter import WooAPI, WooLocation
 
 _logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class WooBackend(models.Model):
 
     @api.model
     def select_versions(self):
-        """ Available versions in the backend.
+        """Available versions in the backend.
 
         Can be inherited to add custom versions.  Using this method
         to add a version from an ``_inherit`` does not constrain
@@ -66,9 +66,9 @@ class WooBackend(models.Model):
         comodel_name="res.lang",
         string="Default Language",
         help="If a default language is selected, the records "
-             "will be imported in the translation of this language.\n"
-             "Note that a similar configuration exists "
-             "for each storeview.",
+        "will be imported in the translation of this language.\n"
+        "Note that a similar configuration exists "
+        "for each storeview.",
     )
 
     @contextmanager
@@ -79,9 +79,7 @@ class WooBackend(models.Model):
         # if lang.code != self.env.context.get("lang"):
         #     self = self.with_context(lang=lang.code)
         woocommerce_location = WooLocation(
-            self.location,
-            self.consumer_key,
-            self.consumer_secret
+            self.location, self.consumer_key, self.consumer_secret
         )
         # TODO: Check Auth Basic
         # if self.use_auth_basic:
@@ -89,7 +87,7 @@ class WooBackend(models.Model):
         #     magento_location.auth_basic_username = self.auth_basic_username
         #     magento_location.auth_basic_password = self.auth_basic_password
         wc_api = WooAPI(woocommerce_location)
-        _super = super(WooBackend, self)
+        _super = super()
         with _super.work_on(model_name, wc_api=wc_api, **kwargs) as work:
             yield work
 
@@ -118,7 +116,7 @@ class WooBackend(models.Model):
 
     @api.multi
     def update_existing_order(self, woo_sale_order, data):
-        """ Enter Your logic for Existing Sale Order """
+        """Enter Your logic for Existing Sale Order"""
         return True
 
     @api.multi
@@ -126,7 +124,8 @@ class WooBackend(models.Model):
         order_ids = []
         for val in data["orders"]:
             woo_sale_order = self.env["woo.sale.order"].search(
-                [("external_id", "=", val["id"])])
+                [("external_id", "=", val["id"])]
+            )
             if woo_sale_order:
                 self.update_existing_order(woo_sale_order[0], val)
                 continue
@@ -139,10 +138,13 @@ class WooBackend(models.Model):
         cons_key = self.consumer_key
         sec_key = self.consumer_secret
 
-        wcapi = API(url=location, consumer_key=cons_key,
-                    consumer_secret=sec_key,
-                    wp_api=True,
-                    version="wc/v2")
+        wcapi = API(
+            url=location,
+            consumer_key=cons_key,
+            consumer_secret=sec_key,
+            wp_api=True,
+            version="wc/v2",
+        )
         r = wcapi.get("products")
         if r.status_code == 404:
             raise UserError(_("Enter Valid url"))

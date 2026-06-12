@@ -10,10 +10,11 @@ _logger = logging.getLogger(__name__)
 
 
 class SaleOrderBatchImporter(Component):
-    """ Import the WooCommerce Orders.
+    """Import the WooCommerce Orders.
 
     For every order in the list, a delayed job is created.
     """
+
     _name = "woocommerce.sale.order.batch.importer"
     _inherit = "woocommerce.delayed.batch.importer"
     _apply_on = ["woo.sale.order"]
@@ -23,11 +24,10 @@ class SaleOrderBatchImporter(Component):
             "max_retries": 0,
             "priority": 5,
         }
-        return super(SaleOrderBatchImporter, self)._import_record(
-            external_id, job_options=job_options)
+        return super()._import_record(external_id, job_options=job_options)
 
     def run(self, filters=None):
-        """ Run the synchronization """
+        """Run the synchronization"""
         from_date = filters.pop("from_date", None)
         to_date = filters.pop("to_date", None)
         record_ids = self.backend_adapter.search(
@@ -38,13 +38,13 @@ class SaleOrderBatchImporter(Component):
         order_ids = []
         for record_id in record_ids:
             woo_sale_order = self.env["woo.sale.order"].search(
-                [("external_id", "=", record_id)])
+                [("external_id", "=", record_id)]
+            )
             if woo_sale_order:
                 self.update_existing_order(woo_sale_order[0], record_id)
             else:
                 order_ids.append(record_id)
-        _logger.info("search for woo partners %s returned %s",
-                     filters, record_ids)
+        _logger.info("search for woo partners %s returned %s", filters, record_ids)
         for record_id in order_ids:
             self._import_record(record_id)
 
@@ -56,11 +56,10 @@ class SaleOrderImporter(Component):
 
     def _import_addresses(self):
         record = self.woo_record
-        self._import_dependency(record["customer_id"],
-                                "woo.res.partner")
+        self._import_dependency(record["customer_id"], "woo.res.partner")
 
     def _import_dependencies(self):
-        """ Import the dependencies for the record"""
+        """Import the dependencies for the record"""
         record = self.woo_record
 
         self._import_addresses()
@@ -68,8 +67,7 @@ class SaleOrderImporter(Component):
         for line in record:
             _logger.debug("line: %s", line)
             if "product_id" in line:
-                self._import_dependency(line["product_id"],
-                                        "woo.product.product")
+                self._import_dependency(line["product_id"], "woo.product.product")
 
     def _clean_woo_items(self, resource):
         """
@@ -97,8 +95,8 @@ class SaleOrderImporter(Component):
         return resource
 
     def _get_woo_data(self):
-        """ Return the raw WooCommerce data for ``self.external_id`` """
-        record = super(SaleOrderImporter, self)._get_woo_data()
+        """Return the raw WooCommerce data for ``self.external_id``"""
+        record = super()._get_woo_data()
         # sometimes we need to clean woo items (ex : configurable
         # product in a sale)
         record = self._clean_woo_items(record)
@@ -120,13 +118,14 @@ class SaleOrderImportMapper(Component):
     def status(self, record):
         if record["status"]:
             status_id = self.env["woo.sale.order.status"].search(
-                [("name", "=", record["status"])])
+                [("name", "=", record["status"])]
+            )
             if status_id:
                 return {"status_id": status_id[0].id}
             else:
-                status_id = self.env["woo.sale.order.status"].create({
-                    "name": record["status"]
-                })
+                status_id = self.env["woo.sale.order.status"].create(
+                    {"name": record["status"]}
+                )
                 return {"status_id": status_id.id}
         else:
             return {"status_id": False}
@@ -135,10 +134,9 @@ class SaleOrderImportMapper(Component):
     def customer_id(self, record):
         binder = self.binder_for("woo.res.partner")
         if record["customer_id"]:
-            partner = binder.to_internal(record["customer_id"],
-                                         unwrap=True) or False
-            assert partner, ("Please Check Customer Role \
-                                in WooCommerce")
+            partner = binder.to_internal(record["customer_id"], unwrap=True) or False
+            assert partner, "Please Check Customer Role \
+                                in WooCommerce"
             result = {"partner_id": partner.id}
         else:
             customer = record["customer"]["billing_address"]
@@ -146,12 +144,14 @@ class SaleOrderImportMapper(Component):
             state_id = False
             if customer["country"]:
                 country_id = self.env["res.country"].search(
-                    [("code", "=", customer["country"])])
+                    [("code", "=", customer["country"])]
+                )
                 if country_id:
                     country_id = country_id.id
             if customer["state"]:
                 state_id = self.env["res.country.state"].search(
-                    [("code", "=", customer["state"])])
+                    [("code", "=", customer["state"])]
+                )
                 if state_id:
                     state_id = state_id.id
             name = customer["first_name"] + " " + customer["last_name"]
@@ -164,10 +164,12 @@ class SaleOrderImportMapper(Component):
                 "country_id": country_id,
             }
             partner_id = self.env["res.partner"].create(partner_dict)
-            partner_dict.update({
-                "backend_id": self.backend_record.id,
-                "openerp_id": partner_id.id,
-            })
+            partner_dict.update(
+                {
+                    "backend_id": self.backend_record.id,
+                    "openerp_id": partner_id.id,
+                }
+            )
             result = {"partner_id": partner_id.id}
         return result
 
@@ -193,5 +195,6 @@ class SaleOrderLineImportMapper(Component):
         product = binder.to_internal(record["product_id"], unwrap=True)
         assert product is not None, (
             "product_id %s should have been imported in "
-            "SaleOrderImporter._import_dependencies" % record["product_id"])
+            "SaleOrderImporter._import_dependencies" % record["product_id"]
+        )
         return {"product_id": product.id}

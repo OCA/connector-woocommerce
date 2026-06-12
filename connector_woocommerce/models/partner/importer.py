@@ -10,16 +10,17 @@ _logger = logging.getLogger(__name__)
 
 
 class CustomerBatchImporter(Component):
-    """ Import the WooCommerce Partners.
+    """Import the WooCommerce Partners.
 
     For every partner in the list, a delayed job is created.
     """
+
     _name = "woocommerce.partner.batch.importer"
     _inherit = "woocommerce.delayed.batch.importer"
     _apply_on = "woo.res.partner"
 
     def run(self, filters=None):
-        """ Run the synchronization """
+        """Run the synchronization"""
         from_date = filters.pop("from_date", None)
         to_date = filters.pop("to_date", None)
         record_ids = self.backend_adapter.search(
@@ -27,8 +28,7 @@ class CustomerBatchImporter(Component):
             from_date=from_date,
             to_date=to_date,
         )
-        _logger.info("search for woo partners %s returned %s",
-                     filters, record_ids)
+        _logger.info("search for woo partners %s returned %s", filters, record_ids)
         for record_id in record_ids:
             self._import_record(record_id)
 
@@ -82,7 +82,8 @@ class CustomerImportMapper(Component):
             rec = record["billing_address"]
             if rec["country"]:
                 country_id = self.env["res.country"].search(
-                    [("code", "=", rec["country"])])
+                    [("code", "=", rec["country"])]
+                )
                 country_id = country_id.id
             else:
                 country_id = False
@@ -94,14 +95,19 @@ class CustomerImportMapper(Component):
             rec = record["billing_address"]
             if rec["state"] and rec["country"]:
                 state_id = self.env["res.country.state"].search(
-                    [("code", "=", rec["state"])])
+                    [("code", "=", rec["state"])]
+                )
                 if not state_id:
                     country_id = self.env["res.country"].search(
-                        [("code", "=", rec["country"])])
+                        [("code", "=", rec["country"])]
+                    )
                     state_id = self.env["res.country.state"].create(
-                        {"name": rec["state"],
-                         "code": rec["state"],
-                         "country_id": country_id.id})
+                        {
+                            "name": rec["state"],
+                            "code": rec["state"],
+                            "country_id": country_id.id,
+                        }
+                    )
                 state_id = state_id.id or False
             else:
                 state_id = False

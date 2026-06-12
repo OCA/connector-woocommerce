@@ -4,7 +4,8 @@
 
 import logging
 
-from odoo import models, fields
+from odoo import fields, models
+
 from odoo.addons.component.core import Component
 
 _logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ class ProductProductAdapter(Component):
     _woo_model = "products"
 
     def search(self, filters=None, from_date=None, to_date=None):
-        """ Search records according to some criteria and return a
+        """Search records according to some criteria and return a
         list of ids
 
         :rtype: list
@@ -62,6 +63,5 @@ class ProductProductAdapter(Component):
         if not to_date:
             filters.setdefault("updated_at", {})
             filters["updated_at"]["to"] = to_date.strftime(dt_fmt)
-        products = self._call("products",
-                              [filters] if filters else [{}])
+        products = self._call("products", [filters] if filters else [{}])
         return [product["id"] for product in products]
