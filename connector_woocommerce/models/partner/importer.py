@@ -61,7 +61,7 @@ class CustomerImportMapper(Component):
     @mapping
     def zip(self, record):
         if record.get("billing_address"):
-            rec = record["customer"]["billing_address"]
+            rec = record["billing_address"]
             return {"zip": rec["postcode"] or None}
 
     @mapping

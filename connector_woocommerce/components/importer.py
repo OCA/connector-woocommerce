@@ -9,7 +9,11 @@ from odoo import _, fields
 
 from odoo.addons.component.core import AbstractComponent
 from odoo.addons.connector.exception import IDMissingInBackend
-from odoo.addons.queue_job.exception import NothingToDoJob
+
+
+class NothingToDoJob(Exception):
+    """Local stand-in for the legacy queue_job exception removed upstream."""
+
 
 _logger = logging.getLogger(__name__)
 
@@ -28,7 +32,7 @@ class WooImporter(AbstractComponent):
 
     def _get_woo_data(self):
         """Return the raw WooCommerce data for ``self.external_id``"""
-        return self.backend_adapter.read(self.external_id)
+        return self.backend_adapter.read_record(self.external_id)
 
     def _before_import(self):
         """Hook called before the import, when we have the WooCommerce
@@ -138,7 +142,6 @@ class WooImporter(AbstractComponent):
 
         :returns: None | str | unicode
         """
-        return
 
     def _get_binding(self):
         return self.binder.to_internal(self.external_id)
@@ -176,7 +179,10 @@ class WooImporter(AbstractComponent):
         :param external_id: identifier of the record on WooCommerce
         """
         self.external_id = external_id
-        lock_name = f"import({self.backend_record._name}, {self.backend_record.id}, {self.work.model_name}, {external_id})"
+        lock_name = (
+            f"import({self.backend_record._name}, {self.backend_record.id}, "
+            f"{self.work.model_name}, {external_id})"
+        )
 
         try:
             self.woo_record = self._get_woo_data()

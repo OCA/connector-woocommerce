@@ -59,10 +59,10 @@ class CategoryAdapter(Component):
             filters = {}
         WOO_DATETIME_FORMAT = "%Y/%m/%d %H:%M:%S"
         dt_fmt = WOO_DATETIME_FORMAT
-        if not from_date:
+        if from_date:
             filters.setdefault("updated_at", {})
             filters["updated_at"]["from"] = from_date.strftime(dt_fmt)
-        if not to_date:
+        if to_date:
             filters.setdefault("updated_at", {})
             filters["updated_at"]["to"] = to_date.strftime(dt_fmt)
         categories = self._call("products/categories", [filters] if filters else [{}])

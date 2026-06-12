@@ -3,9 +3,9 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 {
     "name": "WooCommerce Connector",
-    "version": "12.0.1.0.0",
+    "version": "18.0.1.0.0",
     "category": "Connector",
-    "author": "Tech Receptives," "FactorLibre," "Odoo Community Association (OCA)",
+    "author": "Tech Receptives,FactorLibre,Odoo Community Association (OCA)",
     "license": "AGPL-3",
     "website": "https://github.com/OCA/connector-woocommerce",
     "maintainers": ["cubells"],
@@ -14,10 +14,9 @@
         "product_multi_category",
         "sale_stock",
     ],
-    "installable": True,
     "data": [
         "security/ir.model.access.csv",
-        "views/backend_views.xml",
+        "views/wc_backend_views.xml",
     ],
     "external_dependencies": {
         "python": ["woocommerce"],
