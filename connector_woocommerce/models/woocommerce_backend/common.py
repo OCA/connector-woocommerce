@@ -11,11 +11,6 @@ from ...components.backend_adapter import WooAPI, WooLocation
 
 _logger = logging.getLogger(__name__)
 
-try:
-    from woocommerce import API
-except ImportError:
-    _logger.debug("Cannot import 'woocommerce'")
-
 IMPORT_DELTA_BUFFER = 30  # seconds
 
 
@@ -130,26 +125,48 @@ class WooBackend(models.Model):
         return order_ids
 
     def test_connection(self):
-        location = self.location
-        cons_key = self.consumer_key
-        sec_key = self.consumer_secret
+        """Check the credentials against the store.
 
-        wcapi = API(
-            url=location,
-            consumer_key=cons_key,
-            consumer_secret=sec_key,
-            wp_api=True,
-            version="wc/v2",
-        )
-        r = wcapi.get("products")
-        if r.status_code == 404:
+        Uses the same client the importers use, so that a passing test really
+        means the imports will authenticate. Building a separate client here
+        made it possible for this to succeed while every import failed.
+        """
+        self.ensure_one()
+        response = WooAPI(
+            WooLocation(
+                self.location,
+                self.consumer_key,
+                self.consumer_secret,
+                verify_ssl=self.verify_ssl,
+            )
+        ).api.get("products")
+
+        if response.status_code == 404:
             raise UserError(_("Enter Valid url"))
-        val = r.json()
-        if "errors" in r.json():
-            msg = val["errors"][0]["message"] + "\n" + val["errors"][0]["code"]
-            raise UserError(_(msg))
-        else:
-            raise UserError(_("Test Success"))
+
+        payload = response.json()
+        if not response.ok or "errors" in payload:
+            if "errors" in payload:
+                error = payload["errors"][0]
+                detail = "{}\n{}".format(error["message"], error["code"])
+            else:
+                detail = "{} - {}".format(
+                    payload.get("code", response.status_code),
+                    payload.get("message", response.reason),
+                )
+            raise UserError(_("Could not connect to WooCommerce:\n%s") % detail)
+
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "type": "success",
+                "title": _("Connection successful"),
+                "message": _("Odoo can reach %s and the credentials are valid.")
+                % self.location,
+                "sticky": False,
+            },
+        }
 
     def import_categories(self):
         for backend in self:

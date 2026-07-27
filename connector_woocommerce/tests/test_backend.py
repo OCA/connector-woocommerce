@@ -74,13 +74,19 @@ class TestWooBackend(WooTestCase):
                 self.backend.test_connection()
 
     def test_test_connection_success(self):
+        """Success returns a notification; it must not raise.
+
+        Raising UserError made Odoo render the success case under its generic
+        "Invalid Operation" error dialog.
+        """
         response = mock.Mock()
         response.status_code = 200
         response.json.return_value = []
         with mock.patch(BACKEND_API_PATH) as api_cls:
             api_cls.return_value.get.return_value = response
-            with self.assertRaisesRegex(UserError, "Test Success"):
-                self.backend.test_connection()
+            action = self.backend.test_connection()
+        self.assertEqual(action["tag"], "display_notification")
+        self.assertEqual(action["params"]["type"], "success")
 
     def test_import_categories_enqueues_batch(self):
         with trap_jobs() as trap:

@@ -9,9 +9,7 @@ from odoo.addons.component.tests.common import TransactionComponentCase
 API_CALL_PATH = (
     "odoo.addons.connector_woocommerce.components.backend_adapter.WooAPI.call"
 )
-BACKEND_API_PATH = (
-    "odoo.addons.connector_woocommerce.models.woocommerce_backend.common.API"
-)
+BACKEND_API_PATH = "odoo.addons.connector_woocommerce.components.backend_adapter.API"
 
 
 class WooTestCase(TransactionComponentCase):
