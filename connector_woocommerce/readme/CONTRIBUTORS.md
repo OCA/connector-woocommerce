@@ -9,3 +9,5 @@
 - [Grupo Isonor](https://www.grupoisonor.es):
 
   > - David Palanca
+
+- Paulius Gaizauskas \<paulius.gaizauskas@gmail.com\> (17.0 backport)
