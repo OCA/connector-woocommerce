@@ -150,7 +150,10 @@ class ProductProductImportMapper(Component):
     @mapping
     def type(self, record):
         if record["type"] == "simple":
-            return {"type": "consu", "is_storable": True}
+            # In 17.0 storability is expressed by the 'product' detailed_type
+            # (added by the stock module); the 18.0 'is_storable' flag does
+            # not exist. 'type' is computed from 'detailed_type'.
+            return {"detailed_type": "product"}
 
     @mapping
     def categories(self, record):
