@@ -79,7 +79,10 @@ class WooBackend(models.Model):
         # if lang.code != self.env.context.get("lang"):
         #     self = self.with_context(lang=lang.code)
         woocommerce_location = WooLocation(
-            self.location, self.consumer_key, self.consumer_secret
+            self.location,
+            self.consumer_key,
+            self.consumer_secret,
+            verify_ssl=self.verify_ssl,
         )
         # TODO: Check Auth Basic
         # if self.use_auth_basic:

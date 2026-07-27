@@ -63,10 +63,11 @@ def output_recorder(filename):
 
 
 class WooLocation:
-    def __init__(self, location, consumer_key, consumer_secret):
+    def __init__(self, location, consumer_key, consumer_secret, verify_ssl=True):
         self._location = location
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
+        self.verify_ssl = verify_ssl
 
     @property
     def location(self):
@@ -86,18 +87,18 @@ class WooAPI:
     @property
     def api(self):
         if not self._api:
-            api = API(
+            # Let the library pick the auth scheme from the URL: query-string
+            # credentials over https, OAuth 1.0a over http. Forcing is_ssl makes
+            # every plain-http store answer 401 woocommerce_rest_cannot_view.
+            self._api = API(
                 url=self._location.location,
                 consumer_key=self._location.consumer_key,
                 consumer_secret=self._location.consumer_secret,
                 wp_api=True,
                 version="wc/v3",
                 query_string_auth=True,
+                verify_ssl=self._location.verify_ssl,
             )
-            # Force basic-via-querystring even on plain HTTP (OAuth1 breaks
-            # behind reverse proxies and dev containers).
-            api.is_ssl = True
-            self._api = api
         return self._api
 
     def call(self, method, arguments):

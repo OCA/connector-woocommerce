@@ -58,12 +58,26 @@ class TestBackendAdapterHelpers(WooTestCase):
                 wp_api=True,
                 version="wc/v3",
                 query_string_auth=True,
+                verify_ssl=True,
             )
             self.assertIs(client, api_cls.return_value)
-            self.assertTrue(client.is_ssl)
             # ...and cached: a second access does not build a new client.
             self.assertIs(woo_api.api, client)
             api_cls.assert_called_once()
+
+    def test_woo_api_does_not_force_is_ssl(self):
+        """The client must decide its auth scheme from the URL.
+
+        Forcing ``is_ssl`` sends the credentials as query-string parameters,
+        which WooCommerce rejects over plain http with
+        ``401 woocommerce_rest_cannot_view``.
+        """
+        location = WooLocation("http://shop.test", "ck", "cs")
+        self.assertFalse(WooAPI(location).api.is_ssl)
+
+    def test_woo_api_passes_verify_ssl(self):
+        location = WooLocation("https://shop.test", "ck", "cs", verify_ssl=False)
+        self.assertFalse(WooAPI(location).api.verify_ssl)
 
 
 class TestBackendAdapterComponents(WooTestCase):
