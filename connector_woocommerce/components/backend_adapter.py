@@ -2,12 +2,9 @@
 # Copyright 2018 FactorLibre
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 import logging
-import socket
-import xmlrpc.client
 from datetime import datetime
 
 from odoo.addons.component.core import AbstractComponent
-from odoo.addons.connector.exception import NetworkRetryableError, RetryableJobError
 from odoo.addons.queue_job.exception import FailedJobError
 
 _logger = logging.getLogger(__name__)
@@ -19,7 +16,7 @@ except ImportError:
 
 recorder = {}
 
-WOO_DATETIME_FORMAT = "%Y/%m/%d %H:%M:%S"
+WOO_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 
 def call_to_key(method, arguments):
@@ -100,58 +97,46 @@ class WooAPI:
             self._api = api
         return self._api
 
-    def call(self, method, arguments):
+    def call(self, method, params=None):
+        params = dict(params or {})
+        start = datetime.now()
         try:
-            if isinstance(arguments, list):
-                while arguments and arguments[-1] is None:
-                    arguments.pop()
-            start = datetime.now()
-            try:
-                response = self.api.get(method)
-                response_json = response.json()
-                if not response.ok:
-                    if response_json.get("code") and response_json.get("message"):
-                        raise FailedJobError(
-                            "{} error: {} - {}".format(
-                                response.status_code,
-                                response_json["code"],
-                                response_json["message"],
-                            )
+            result = self._get_all(method, params)
+        except Exception:
+            _logger.error("api.call(%s, %s) failed", method, params)
+            raise
+        _logger.debug(
+            "api.call(%s, %s) returned %s records in %s seconds",
+            method,
+            params,
+            len(result) if isinstance(result, list) else 1,
+            (datetime.now() - start).seconds,
+        )
+        return result
+
+    def _get_all(self, method, params, per_page=20):
+        params.setdefault("per_page", per_page)
+        page = params.pop("page", 1)
+        results = []
+        while True:
+            response = self.api.get(method, params={**params, "page": page})
+            response_json = response.json()
+            if not response.ok:
+                if response_json.get("code") and response_json.get("message"):
+                    raise FailedJobError(
+                        "{} error: {} - {}".format(
+                            response.status_code,
+                            response_json["code"],
+                            response_json["message"],
                         )
-                    else:
-                        return response.raise_for_status()
-                result = response_json
-            except Exception:
-                _logger.error("api.call(%s, %s) failed", method, arguments)
-                raise
-            else:
-                _logger.debug(
-                    "api.call(%s, %s) returned %s in %s seconds",
-                    method,
-                    arguments,
-                    result,
-                    (datetime.now() - start).seconds,
-                )
-            return result
-        except (TimeoutError, OSError, socket.gaierror) as err:
-            raise NetworkRetryableError(
-                f"A network error caused the failure of the job: {err}"
-            ) from err
-        except xmlrpc.client.ProtocolError as err:
-            if err.errcode in [
-                502,  # Bad gateway
-                503,  # Service unavailable
-                504,
-            ]:  # Gateway timeout
-                raise RetryableJobError(
-                    "A protocol error caused the failure of the job:\n"
-                    f"URL: {err.url}\n"
-                    f"HTTP/HTTPS headers: {err.headers}\n"
-                    f"Error code: {err.errcode}\n"
-                    f"Error message: {err.errmsg}\n"
-                ) from err
-            else:
-                raise
+                    )
+                response.raise_for_status()
+            if not isinstance(response_json, list):
+                return response_json  # single record
+            results.extend(response_json)
+            if page >= int(response.headers.get("X-WP-TotalPages", 1)):
+                return results
+            page += 1
 
 
 class WooCRUDAdapter(AbstractComponent):
@@ -191,7 +176,7 @@ class GenericAdapter(AbstractComponent):
 
         :rtype: list
         """
-        return self._call(f"{self._woo_model}.search", [filters] if filters else [{}])
+        return self._call(f"{self._woo_model}.search", filters or {})
 
     def read_record(self, external_id, attributes=None):
         """Returns the information of a record
@@ -206,9 +191,9 @@ class GenericAdapter(AbstractComponent):
             # attributes). The right correction is to install the
             # compatibility patch on WooCommerce.
             arguments.append(attributes)
-        return self._call(f"{self._woo_model}/{external_id}", [])
+        return self._call(f"{self._woo_model}/{external_id}", {})
 
     def search_read(self, filters=None):
         """Search records according to some criterias
         and returns their information"""
-        return self._call(f"{self._woo_model}.list", [filters])
+        return self._call(f"{self._woo_model}.list", filters or {})

@@ -81,17 +81,17 @@ class TestBackendAdapterComponents(WooTestCase):
             adapter = work.component(usage="backend.adapter")
             result = adapter.read_record(5)
         self.assertEqual(result, {"id": 5})
-        mocked.assert_called_once_with("products/categories/5", [])
+        mocked.assert_called_once_with("products/categories/5", {})
 
     def test_generic_search_read(self):
         with (
-            self.mock_api({"products/categories.list": [{"id": 5}]}) as mocked,
+            self.mock_api({"products/categories.list": {"id": 5}}) as mocked,
             self.backend.work_on("woo.product.category") as work,
         ):
             adapter = work.component(usage="backend.adapter")
             result = adapter.search_read({})
-        self.assertEqual(result, [{"id": 5}])
-        mocked.assert_called_once_with("products/categories.list", [{}])
+        self.assertEqual(result, {"id": 5})
+        mocked.assert_called_once_with("products/categories.list", {})
 
     def test_category_adapter_search_returns_ids(self):
         payload = [{"id": 11}, {"id": 7}, {"id": 9}]
@@ -102,7 +102,7 @@ class TestBackendAdapterComponents(WooTestCase):
             adapter = work.component(usage="backend.adapter")
             result = adapter.search()
         self.assertEqual(result, [11, 7, 9])
-        mocked.assert_called_once_with("products/categories", [{}])
+        mocked.assert_called_once_with("products/categories", {})
 
     def test_customer_adapter_search_returns_ids(self):
         payload = [{"id": 1}, {"id": 2}]
@@ -113,4 +113,4 @@ class TestBackendAdapterComponents(WooTestCase):
             adapter = work.component(usage="backend.adapter")
             result = adapter.search()
         self.assertEqual(result, [1, 2])
-        mocked.assert_called_once_with("customers", [{}])
+        mocked.assert_called_once_with("customers", {})

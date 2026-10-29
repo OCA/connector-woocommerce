@@ -51,12 +51,11 @@ class CustomerAdapter(Component):
             filters = {}
         dt_fmt = WOO_DATETIME_FORMAT
         if from_date:
-            # updated_at include the created records
-            filters.setdefault("updated_at", {})
-            filters["updated_at"]["from"] = from_date.strftime(dt_fmt)
+            filters["modified_after"] = from_date.strftime(dt_fmt)
+            filters["dates_are_gmt"] = True
         if to_date:
-            filters.setdefault("updated_at", {})
-            filters["updated_at"]["to"] = to_date.strftime(dt_fmt)
+            filters["modified_before"] = to_date.strftime(dt_fmt)
+            filters["dates_are_gmt"] = True
         # the search method is on ol_customer instead of customer
-        customers = self._call("customers", [filters] if filters else [{}])
+        customers = self._call("customers", filters or {})
         return [customer["id"] for customer in customers]

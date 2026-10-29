@@ -48,19 +48,15 @@ class WooBackend(models.Model):
         selection="select_versions",
         required=True,
     )
-    verify_ssl = fields.Boolean(
-        string="Verify SSL",
-    )
+    verify_ssl = fields.Boolean()
     warehouse_id = fields.Many2one(
         comodel_name="stock.warehouse",
-        string="Warehouse",
         required=True,
         help="Warehouse used to compute the stock quantities.",
     )
     company_id = fields.Many2one(
         comodel_name="res.company",
         related="warehouse_id.company_id",
-        string="Company",
         readonly=True,
     )
     default_lang_id = fields.Many2one(
@@ -70,6 +66,18 @@ class WooBackend(models.Model):
         "will be imported in the translation of this language.\n"
         "Note that a similar configuration exists "
         "for each storeview.",
+    )
+    last_update_categories = fields.Datetime(
+        help="Timestamp of the last update for product categories.",
+    )
+    last_update_products = fields.Datetime(
+        help="Timestamp of the last update for products.",
+    )
+    last_update_customers = fields.Datetime(
+        help="Timestamp of the last update for customers.",
+    )
+    last_update_sale_order = fields.Datetime(
+        help="Timestamp of the last update for orders.",
     )
 
     @contextmanager
@@ -148,6 +156,16 @@ class WooBackend(models.Model):
         else:
             raise UserError(self.env._("Test Success"))
 
+    def import_categories_since_last_update(self):
+        now = fields.Datetime.now()
+        for backend in self:
+            filters = {}
+            if backend.last_update_categories:
+                filters["from_date"] = backend.last_update_categories
+            self.env["woo.product.category"].import_batch(backend, filters)
+            backend.last_update_categories = now
+        return True
+
     def import_categories(self):
         for backend in self:
             self.env["woo.product.category"].with_delay().import_batch(backend)
@@ -158,9 +176,29 @@ class WooBackend(models.Model):
             self.env["woo.product.product"].with_delay().import_batch(backend)
         return True
 
+    def import_products_since_last_update(self):
+        now = fields.Datetime.now()
+        for backend in self:
+            filters = {}
+            if backend.last_update_products:
+                filters["from_date"] = backend.last_update_products
+            self.env["woo.product.product"].import_batch(backend, filters)
+            backend.last_update_products = now
+        return True
+
     def import_customers(self):
         for backend in self:
             self.env["woo.res.partner"].with_delay().import_batch(backend)
+        return True
+
+    def import_customers_since_last_update(self):
+        now = fields.Datetime.now()
+        for backend in self:
+            filters = {}
+            if backend.last_update_customers:
+                filters["from_date"] = backend.last_update_customers
+            self.env["woo.res.partner"].import_batch(backend, filters)
+            backend.last_update_customers = now
         return True
 
     def import_orders(self):
@@ -168,36 +206,12 @@ class WooBackend(models.Model):
             self.env["woo.sale.order"].with_delay().import_batch(backend)
         return True
 
-    # @api.multi
-    # def import_order(self):
-    #     session = ConnectorSession(self.env.cr, self.env.uid,
-    #                                context=self.env.context)
-    #     import_start_time = datetime.now()
-    #     backend_id = self.id
-    #     from_date = None
-    #     sale_order_import_batch.delay(
-    #         session, "woo.sale.order", backend_id,
-    #         {"from_date": from_date,
-    #          "to_date": import_start_time}, priority=4)
-    #     return True
-
-    # @api.multi
-    # def import_categories(self):
-    #     """ Import Product categories """
-    #     for backend in self:
-    #         backend.import_category()
-    #     return True
-
-    # @api.multi
-    # def import_products(self):
-    #     """ Import categories from all websites """
-    #     for backend in self:
-    #         backend.import_product()
-    #     return True
-
-    # @api.multi
-    # def import_orders(self):
-    #     """ Import Orders from all websites """
-    #     for backend in self:
-    #         backend.import_order()
-    #     return True
+    def import_sale_order_since_last_update(self):
+        now = fields.Datetime.now()
+        for backend in self:
+            filters = {}
+            if backend.last_update_sale_order:
+                filters["from_date"] = backend.last_update_sale_order
+            self.env["woo.sale.order"].import_batch(backend, filters)
+            backend.last_update_sale_order = now
+        return True

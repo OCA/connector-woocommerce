@@ -39,6 +39,46 @@
                     </group>
                     <notebook>
                         <page name="import" string="Imports">
+                            <group colspan="4">
+                                <group>
+                                    <field name="last_update_categories" />
+                                    <button
+                                        name="import_categories_since_last_update"
+                                        type="object"
+                                        class="oe_highlight"
+                                        string="Import categories"
+                                    />
+                                </group>
+                                <group>
+                                    <field name="last_update_products" />
+                                    <button
+                                        name="import_products_since_last_update"
+                                        type="object"
+                                        class="oe_highlight"
+                                        string="Import products"
+                                    />
+                                </group>
+                                <group>
+                                    <field name="last_update_customers" />
+                                    <button
+                                        name="import_customers_since_last_update"
+                                        type="object"
+                                        class="oe_highlight"
+                                        string="Import customers"
+                                    />
+                                </group>
+                                <group>
+                                    <field name="last_update_sale_order" />
+                                    <button
+                                        name="import_sale_order_since_last_update"
+                                        type="object"
+                                        class="oe_highlight"
+                                        string="Import Sale Orders"
+                                    />
+                                </group>
+                            </group>
+                        </page>
+                        <page name="full_import" string="Full Imports">
                             <group>
                                 <button
                                     name="import_categories"

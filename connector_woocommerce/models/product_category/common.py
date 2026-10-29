@@ -8,6 +8,8 @@ from odoo import fields, models
 
 from odoo.addons.component.core import Component
 
+from ...components.backend_adapter import WOO_DATETIME_FORMAT
+
 _logger = logging.getLogger(__name__)
 
 
@@ -57,13 +59,12 @@ class CategoryAdapter(Component):
         """
         if not filters:
             filters = {}
-        WOO_DATETIME_FORMAT = "%Y/%m/%d %H:%M:%S"
         dt_fmt = WOO_DATETIME_FORMAT
         if from_date:
-            filters.setdefault("updated_at", {})
-            filters["updated_at"]["from"] = from_date.strftime(dt_fmt)
+            filters["modified_after"] = from_date.strftime(dt_fmt)
+            filters["dates_are_gmt"] = True
         if to_date:
-            filters.setdefault("updated_at", {})
-            filters["updated_at"]["to"] = to_date.strftime(dt_fmt)
-        categories = self._call("products/categories", [filters] if filters else [{}])
+            filters["modified_before"] = to_date.strftime(dt_fmt)
+            filters["dates_are_gmt"] = True
+        categories = self._call("products/categories", filters or {})
         return [category["id"] for category in categories]

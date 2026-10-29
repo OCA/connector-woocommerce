@@ -26,6 +26,9 @@ class CategoryBatchImporter(Component):
 
     def run(self, filters=None):
         """Run the synchronization"""
+        if not filters:
+            filters = {}
+
         from_date = filters.pop("from_date", None)
         to_date = filters.pop("to_date", None)
         record_ids = self.backend_adapter.search(

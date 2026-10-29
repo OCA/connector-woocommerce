@@ -39,30 +39,21 @@ class WooImporter(AbstractComponent):
         data"""
 
     def _is_uptodate(self, binding):
-        """Return True if the import should be skipped because
-        it is already up-to-date in OpenERP"""
-        WOO_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-        dt_fmt = WOO_DATETIME_FORMAT
-        assert self.woo_record
-        if not self.woo_record:
-            return  # no update date on WooCommerce, always import it.
+        """Return True if the import should be skipped because the record
+        has not changed in WooCommerce since the last sync."""
         if not binding:
-            return  # it does not exist so it should not be skipped
-        sync = binding.sync_date
-        if not sync:
-            return
-        from_string = fields.Datetime.from_string
-        sync_date = from_string(sync)
-        self.woo_record["updated_at"] = {}
-        self.woo_record["updated_at"] = {"to": datetime.now().strftime(dt_fmt)}
-        woo_date = from_string(self.woo_record["updated_at"]["to"])
-        # if the last synchronization date is greater than the last
-        # update in woo, we skip the import.
-        # Important: at the beginning of the exporters flows, we have to
-        # check if the woo_date is more recent than the sync_date
-        # and if so, schedule a new import. If we don"t do that, we"ll
-        # miss changes done in WooCommerce
-        return woo_date < sync_date
+            return False
+        sync_date = binding.sync_date
+        if not sync_date:
+            return False
+        modified = (self.woo_record or {}).get("date_modified_gmt")
+        if not modified:
+            # Resource without a modified date (categories, tags, attributes...)
+            return False
+        woo_date = datetime.fromisoformat(modified)
+        sync_date = fields.Datetime.to_datetime(sync_date)
+        # Skip only if WooCommerce has nothing newer than our last sync
+        return woo_date <= sync_date
 
     def _import_dependency(
         self, external_id, binding_model, importer=None, always=False
